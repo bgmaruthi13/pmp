@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Project Management{% endblock %}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 1rem; }
+        .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .column h3 { border-bottom: 2px solid #ddd; padding-bottom: 0.5rem; }
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; }
+        .card small { color: #666; }
+        .btn { display: inline-block; background: #2563eb; color: #fff; padding: 0.4rem 0.8rem; border-radius: 4px; }
+        .btn:hover { background: #1d4ed8; text-decoration: none; }
+        form p { margin: 0.75rem 0; }
+        input, textarea, select { width: 100%; padding: 0.4rem; box-sizing: border-box; }
+        .project-list { list-style: none; padding: 0; }
+        .project-list li { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{% url 'project-list' %}"><strong>PMP</strong></a>
+        <div>
+            {% if user.is_authenticated %}
+                {{ user.username }} · <a href="{% url 'admin:logout' %}">Log out</a>
+            {% else %}
+                <a href="{% url 'admin:login' %}">Log in</a>
+            {% endif %}
+        </div>
+    </nav>
+    {% block content %}{% endblock %}
+</body>
+</html>

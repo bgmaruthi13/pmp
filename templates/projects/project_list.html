@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+    <h1>Projects</h1>
+    {% if user.is_authenticated %}
+        <p><a class="btn" href="{% url 'project-create' %}">+ New project</a></p>
+    {% endif %}
+    <ul class="project-list">
+        {% for project in projects %}
+            <li>
+                <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+                <div><small>{{ project.tasks.count }} task{{ project.tasks.count|pluralize }}</small></div>
+            </li>
+        {% empty %}
+            <li>No projects yet.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+    <h1>{{ project.name }}</h1>
+    <p>{{ project.description }}</p>
+    {% if user.is_authenticated %}
+        <p><a class="btn" href="{% url 'task-create' project.pk %}">+ New task</a></p>
+    {% endif %}
+
+    <div class="board">
+        {% for column in columns %}
+            <div class="column">
+                <h3>{{ column.label }}</h3>
+                {% for task in column.tasks %}
+                    <div class="card">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'task-update' task.pk %}">{{ task.title }}</a>
+                        {% else %}
+                            {{ task.title }}
+                        {% endif %}
+                        {% if task.assignee %}<div><small>{{ task.assignee.username }}</small></div>{% endif %}
+                        {% if task.due_date %}<div><small>Due {{ task.due_date }}</small></div>{% endif %}
+                    </div>
+                {% empty %}
+                    <p><small>No tasks.</small></p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
