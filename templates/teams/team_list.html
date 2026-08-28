@@ -7,11 +7,6 @@
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
         <a href="{% url 'team-analysis' %}">Analysis</a>
     </div>
-    {% if user.is_staff %}
-        <p style="margin-top:0;">
-            <a class="btn" href="{% url 'admin:teams_employee_import' %}">Import from Excel (Admin)</a>
-        </p>
-    {% endif %}
     <div class="table-wrap">
     <table>
         <thead>
