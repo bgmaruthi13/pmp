@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Analysis · eSuvidha Ops Portal{% endblock %}
+{% block title %}Support · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <div class="tabs">
         <a href="{% url 'team-org' %}">Directory</a>
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
-        <a href="{% url 'team-analysis' %}" class="active">Analysis</a>
-        <a href="{% url 'support-analysis' %}">Support</a>
+        <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'support-analysis' %}" class="active">Support</a>
         {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Configuration</a>{% endif %}
     </div>
     <p style="color:var(--muted);max-width:760px;">
-        Charts and a ready-to-copy analysis prompt, built from every user story synced from Azure
-        DevOps or imported from Excel/CSV.
+        Charts and a ready-to-copy analysis prompt, built from every support ticket synced from
+        Azure DevOps or imported from Excel/CSV &mdash; tracked separately from user stories.
         {% if user.is_staff %}Manage data sources on the <a href="{% url 'admin-settings' %}">Configuration</a> tab.{% endif %}
     </p>
 
@@ -45,7 +45,7 @@
                 <p style="margin:0;">
                     <button class="btn" type="submit">Apply Filters</button>
                     {% if filters.active %}
-                        <a class="btn" href="{% url 'team-analysis' %}" style="background:#8a97a6;">Clear</a>
+                        <a class="btn" href="{% url 'support-analysis' %}" style="background:#8a97a6;">Clear</a>
                     {% endif %}
                 </p>
             </div>
@@ -57,8 +57,8 @@
     {% endif %}
 
     <div class="stat-row">
-        <div class="stat-tile"><div class="stat-value">{{ summary.total_items }}</div><div class="stat-label">Work items</div></div>
-        <div class="stat-tile"><div class="stat-value">{{ summary.total_points|default:"0" }}</div><div class="stat-label">Story points</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ summary.total_items }}</div><div class="stat-label">Support tickets</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ summary.total_points|default:"0" }}</div><div class="stat-label">Effort points</div></div>
         <div class="stat-tile"><div class="stat-value">{{ summary.employee_count }}</div><div class="stat-label">Team members with data</div></div>
     </div>
 
@@ -91,7 +91,7 @@
         </div>
 
         <div class="column" style="margin-top:1.25rem;">
-            <h3 style="margin-top:0;margin-bottom:0.2rem;">Monthly Delivery Trend</h3>
+            <h3 style="margin-top:0;margin-bottom:0.2rem;">Monthly Ticket Trend</h3>
             <div class="bar-chart">
                 {% for m in charts.monthly_series %}
                     <div class="bar-col">
@@ -106,9 +106,9 @@
         <div class="column" style="margin-top:1.25rem;">
             <h3 style="margin-top:0;margin-bottom:0.2rem;">Tickets by Product/Component</h3>
             <p style="color:var(--muted);font-size:0.78rem;margin-top:0;">
-                Grouped by each item's Area Path as tagged in the source system &mdash; useful, but only
-                as good as that field's data quality. For a read that also accounts for what a ticket
-                is actually about, see the Craft a Prompt section below.
+                Grouped by each ticket's Area Path as tagged in the source system &mdash; useful, but
+                only as good as that field's data quality. For a read that also accounts for what a
+                ticket is actually about, see the Craft a Prompt section below.
             </p>
             <div class="bar-chart">
                 {% for row in charts.by_component %}
@@ -210,14 +210,14 @@
                         <tr>
                             <th>Name</th>
                             <th>Designation</th>
-                            <th>Work Items</th>
-                            <th>Story Points</th>
+                            <th>Tickets</th>
+                            <th>Effort Points</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in summary.rows %}
                             <tr>
-                                <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.employee.name }}</a></td>
+                                <td style="white-space:nowrap;"><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
                                 <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
                                 <td style="white-space:nowrap;">{{ row.item_count }}</td>
                                 <td style="white-space:nowrap;">{{ row.points }}</td>
@@ -229,9 +229,9 @@
         </div>
 
         <div class="column" style="margin-top:1.25rem;">
-            <h3 style="margin-top:0;margin-bottom:0.2rem;">User Stories</h3>
+            <h3 style="margin-top:0;margin-bottom:0.2rem;">Support Tickets</h3>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:0;">
-                Owner, title, description, component, and country for each item.
+                Owner, title, description, component, and country for each ticket.
                 {% if story_row_total > story_row_limit %}Showing the {{ story_row_limit }} most recent of {{ story_row_total }}.{% endif %}
             </p>
             <div class="table-wrap" style="max-height:420px;overflow-y:auto;">
@@ -249,7 +249,7 @@
                     <tbody>
                         {% for row in story_rows %}
                             <tr>
-                                <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.employee.name }}</a></td>
+                                <td style="white-space:nowrap;"><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
                                 <td>{% if row.url %}<a href="{{ row.url }}" target="_blank" rel="noopener">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}</td>
                                 <td>{{ row.description|default:"—"|truncatechars:140 }}</td>
                                 <td style="white-space:nowrap;">{{ row.component|default:"—" }}</td>
@@ -269,21 +269,21 @@
                 and descriptions (not just our local counts), and asks the AI to do the parts that
                 need real reading comprehension: classifying configuration vs development work,
                 identifying the real products/components/themes each ticket is about, and
-                summarizing the delivery trend, story-type mix, and country/developer distribution.
+                summarizing the trend, ticket-type mix, and country/developer distribution.
                 Reflects the filters above, if any are set.
             </p>
-            <textarea id="team-analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
+            <textarea id="support-analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
             <p style="margin-bottom:0;">
-                <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('team-analysis-prompt').value)">Copy Prompt</button>
+                <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('support-analysis-prompt').value)">Copy Prompt</button>
             </p>
         </div>
     {% elif filters.active %}
         <p style="color:var(--muted);margin-top:1rem;">
-            No user stories match the current filters. <a href="{% url 'team-analysis' %}">Clear filters</a> to see everything.
+            No support tickets match the current filters. <a href="{% url 'support-analysis' %}">Clear filters</a> to see everything.
         </p>
     {% else %}
         <p style="color:var(--muted);margin-top:1rem;">
-            No work items imported yet.
+            No support tickets imported yet.
             {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Go to Configuration</a> to sync from Azure DevOps or import a file.{% endif %}
         </p>
     {% endif %}

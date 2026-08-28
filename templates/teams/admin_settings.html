@@ -5,13 +5,16 @@
         <a href="{% url 'team-org' %}">Directory</a>
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
         <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'support-analysis' %}">Support</a>
         <a href="{% url 'admin-settings' %}" class="active">Configuration</a>
     </div>
     <p style="color:var(--muted);max-width:700px;">
-        Everything needed to bring user story data into the Analysis tab lives here &mdash; the
-        Azure DevOps connection, the automatic sync schedule, and Excel/CSV import.
+        Everything needed to bring user story and support ticket data into the Analysis and Support
+        tabs lives here &mdash; the Azure DevOps connections, automatic sync schedules, and
+        Excel/CSV import.
     </p>
 
+    <h2 style="margin-bottom:0.4rem;">User Stories</h2>
     {% if settings_obj.last_synced_at %}
         <p>
             {% if settings_obj.last_sync_success %}
@@ -46,8 +49,8 @@
                 >
             </p>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
-                Used for every Azure DevOps query &mdash; each person's own sync and the team-wide
-                Analysis sync.
+                Used for every Azure DevOps query &mdash; each person's own sync, the team-wide
+                Analysis sync, and the Support sync below.
             </p>
             <p>
                 <label for="team_query_url">Team-wide user stories query URL</label>
@@ -82,20 +85,76 @@
                 Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_azure_devops</code> instead.
             </p>
 
+            <h2 style="margin-top:2rem;margin-bottom:0.4rem;">Support Tickets</h2>
+            <p>
+                <label for="support_query_url">Team-wide support tickets query URL</label>
+                <input
+                    type="url" name="support_query_url" id="support_query_url"
+                    value="{{ settings_obj.support_query_url }}"
+                    placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+                >
+            </p>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+                Used to pull support tickets for the whole team at once, matched to people by
+                assignee. Uses the same organization URL and PAT as above.
+            </p>
+
+            <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Automatic Sync</h3>
+            <p>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
+                    <input type="checkbox" name="support_auto_sync_enabled" style="width:auto;" {% if settings_obj.support_auto_sync_enabled %}checked{% endif %}>
+                    Sync automatically
+                </label>
+            </p>
+            <p>
+                <label for="support_auto_sync_interval_hours">Every (hours)</label>
+                <input
+                    type="number" min="1" name="support_auto_sync_interval_hours" id="support_auto_sync_interval_hours"
+                    value="{{ settings_obj.support_auto_sync_interval_hours }}" style="width:120px;"
+                >
+            </p>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+                While on, visiting the Support tab re-syncs in the background once this interval has
+                passed &mdash; at most once per interval, however many people visit. For a schedule
+                that doesn't depend on someone visiting the page, point an external daily cron (Render
+                Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_support_tickets</code> instead.
+            </p>
+
             <p style="margin-top:1.5rem;">
                 <button class="btn" type="submit">Save Settings</button>
             </p>
         </form>
 
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="sync_now">
-            <button class="btn" type="submit" style="background:#8a97a6;">Sync Now</button>
-        </form>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="sync_now">
+                <button class="btn" type="submit" style="background:#8a97a6;">Sync User Stories Now</button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="sync_now_support">
+                <button class="btn" type="submit" style="background:#8a97a6;">Sync Support Tickets Now</button>
+            </form>
+        </div>
     </div>
 
+    {% if settings_obj.support_last_synced_at %}
+        <p style="max-width:640px;">
+            {% if settings_obj.support_last_sync_success %}
+                <span class="pill success">Support last synced {{ settings_obj.support_last_synced_at|timesince }} ago</span>
+                &mdash; {{ settings_obj.support_last_sync_item_count|default:"0" }} item(s) matched.
+            {% else %}
+                <span class="pill danger">Support sync attempt {{ settings_obj.support_last_synced_at|timesince }} ago failed</span>
+                &mdash; {{ settings_obj.support_last_sync_error }}
+            {% endif %}
+        </p>
+    {% else %}
+        <p style="color:var(--muted);max-width:640px;">Support tickets never synced yet.</p>
+    {% endif %}
+
     <div class="column" style="max-width:640px;margin-top:1.25rem;">
-        <h3 style="margin-top:0;margin-bottom:0.4rem;">Import from Excel / CSV</h3>
+        <h3 style="margin-top:0;margin-bottom:0.4rem;">Import User Stories from Excel / CSV</h3>
         <p style="color:var(--muted);">
             Use this when Azure DevOps isn't available. Upload a file with one row per user story,
             including a column for who it's assigned to (name or email) &mdash; you'll map its
@@ -104,5 +163,18 @@
         <a class="btn" href="{% url 'analysis-import-upload' %}">Upload File</a>
     </div>
 
-    <p style="margin-top:1.5rem;"><a href="{% url 'team-analysis' %}">Go to Analysis &rarr;</a></p>
+    <div class="column" style="max-width:640px;margin-top:1.25rem;">
+        <h3 style="margin-top:0;margin-bottom:0.4rem;">Import Support Tickets from Excel / CSV</h3>
+        <p style="color:var(--muted);">
+            Use this when Azure DevOps isn't available. Upload a file with one row per support
+            ticket, including a column for who it's assigned to (name or email) &mdash; you'll map
+            its columns to Title, Assignee, Type, State, and more on the next screen.
+        </p>
+        <a class="btn" href="{% url 'support-import-upload' %}">Upload File</a>
+    </div>
+
+    <p style="margin-top:1.5rem;">
+        <a href="{% url 'team-analysis' %}">Go to Analysis &rarr;</a>
+        &middot; <a href="{% url 'support-analysis' %}">Go to Support &rarr;</a>
+    </p>
 {% endblock %}

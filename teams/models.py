@@ -180,6 +180,47 @@ class WorkItem(models.Model):
         return self.title
 
 
+class SupportTicket(models.Model):
+    """Helpdesk / incident-style support tickets - tracked separately from user
+    stories (WorkItem) since they're a different kind of work with their own page,
+    even though the record shape and import/sync mechanics are the same."""
+
+    class Source(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        AZURE_DEVOPS = "azure_devops", "Azure DevOps"
+        EXCEL = "excel", "Excel / CSV Import"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="support_tickets")
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
+    external_id = models.CharField(max_length=50, blank=True)
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    work_item_type = models.CharField("Ticket type", max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    story_points = models.DecimalField("Effort", max_digits=6, decimal_places=1, null=True, blank=True)
+    project_label = models.CharField(max_length=200, blank=True)
+    area_path = models.CharField(max_length=200, blank=True)
+    iteration_path = models.CharField(max_length=200, blank=True)
+    priority = models.PositiveSmallIntegerField(null=True, blank=True)
+    tags = models.CharField(max_length=300, blank=True)
+    assigned_to_raw = models.CharField(
+        "Assigned to (as imported)",
+        max_length=200,
+        blank=True,
+        help_text="The raw assignee name/email from the source, kept for traceability.",
+    )
+    created_date = models.DateField(null=True, blank=True)
+    closed_date = models.DateField(null=True, blank=True)
+    url = models.URLField(blank=True)
+    imported_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-closed_date", "-created_date"]
+
+    def __str__(self):
+        return self.title
+
+
 class AzureDevOpsSettings(models.Model):
     organization_url = models.URLField(
         blank=True, help_text="e.g. https://dev.azure.com/your-organization"
@@ -209,6 +250,23 @@ class AzureDevOpsSettings(models.Model):
     last_sync_success = models.BooleanField(default=False)
     last_sync_error = models.TextField(blank=True)
     last_sync_item_count = models.PositiveIntegerField(null=True, blank=True)
+
+    support_query_url = models.URLField(
+        "Support tickets query URL",
+        blank=True,
+        help_text=(
+            "Shared query link returning support tickets for the whole team (across assignees), "
+            "used by the Support tab. e.g. https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+        ),
+    )
+    support_auto_sync_enabled = models.BooleanField(
+        "Automatically keep support tickets in sync", default=False
+    )
+    support_auto_sync_interval_hours = models.PositiveIntegerField(default=24)
+    support_last_synced_at = models.DateTimeField(null=True, blank=True)
+    support_last_sync_success = models.BooleanField(default=False)
+    support_last_sync_error = models.TextField(blank=True)
+    support_last_sync_item_count = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Azure DevOps settings"

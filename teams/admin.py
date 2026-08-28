@@ -7,7 +7,7 @@ from django.db.models import Max
 from django.shortcuts import redirect, render
 from django.urls import path
 
-from .models import AzureDevOpsSettings, Employee, Role, WorkItem
+from .models import AzureDevOpsSettings, Employee, Role, SupportTicket, WorkItem
 
 MAX_IMPORT_ROWS = 500
 
@@ -230,6 +230,23 @@ class WorkItemAdmin(admin.ModelAdmin):
         "state",
         "priority",
         "story_points",
+        "closed_date",
+    )
+    list_filter = ("source", "work_item_type", "state", "priority")
+    search_fields = ("title", "external_id", "employee__name", "assigned_to_raw", "tags")
+    autocomplete_fields = ("employee",)
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "employee",
+        "assigned_to_raw",
+        "source",
+        "work_item_type",
+        "state",
+        "priority",
         "closed_date",
     )
     list_filter = ("source", "work_item_type", "state", "priority")

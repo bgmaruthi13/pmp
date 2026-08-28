@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load team_extras %}
+{% block title %}Support · Map Columns{% endblock %}
+{% block content %}
+    <p><a href="{% url 'support-import-upload' %}">&larr; Upload a different file</a></p>
+    <h1>Map Columns</h1>
+    <p style="color:var(--muted);max-width:640px;">
+        Match each field to a column from your file. Title and Assignee are required &mdash; the
+        assignee (name or email) is matched to a team member automatically. Unmatched rows are
+        skipped and listed after import.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:1.25rem 1.5rem;max-width:640px;margin-bottom:1.5rem;">
+            <div style="display:grid;grid-template-columns:220px 1fr;gap:0.9rem 1rem;align-items:center;">
+                {% for field in fields %}
+                    <label for="map_{{ field.key }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+                    <select name="map_{{ field.key }}" id="map_{{ field.key }}">
+                        <option value="">&mdash; Not mapped &mdash;</option>
+                        {% with current=mapping|get_item:field.key %}
+                            {% for header in headers %}
+                                <option value="{{ header }}" {% if header == current %}selected{% endif %}>{{ header }}</option>
+                            {% endfor %}
+                        {% endwith %}
+                    </select>
+                {% endfor %}
+            </div>
+        </div>
+        <button class="btn" type="submit">Import Support Tickets</button>
+    </form>
+
+    <h3 style="margin-top:2rem;">Preview (first {{ rows|length }} rows from your file)</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>{% for header in headers %}<th>{{ header|default:"(blank)" }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>{% for cell in row %}<td>{{ cell|default:"—" }}</td>{% endfor %}</tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -5,6 +5,7 @@
         <a href="{% url 'team-org' %}">Directory</a>
         <a href="{% url 'team-efficiency' %}" class="active">Efficiency</a>
         <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'support-analysis' %}">Support</a>
         {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Configuration</a>{% endif %}
     </div>
     <p style="color:var(--muted);max-width:760px;">

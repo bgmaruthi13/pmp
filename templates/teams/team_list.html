@@ -6,6 +6,7 @@
         <a href="{% url 'team-org' %}" class="active">Directory</a>
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
         <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'support-analysis' %}">Support</a>
         {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Configuration</a>{% endif %}
     </div>
     <div class="table-wrap">

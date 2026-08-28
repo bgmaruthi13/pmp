@@ -18,8 +18,8 @@ from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
 from .forms import EmployeeForm, EmployeeNoteForm
-from .models import AzureDevOpsSettings, Employee, EmployeeNote, EmployeeNoteAttachment, WorkItem
-from .sync import import_team_work_items, run_team_ado_sync
+from .models import AzureDevOpsSettings, Employee, EmployeeNote, EmployeeNoteAttachment, SupportTicket, WorkItem
+from .sync import import_team_records, import_team_work_items, run_support_ado_sync, run_team_ado_sync
 
 NOTE_CATEGORY_LABELS = dict(EmployeeNote.Category.choices)
 
@@ -607,33 +607,34 @@ def _months_cutoff(months):
     return date(year, month, 1)
 
 
-def _team_analysis_data(request):
-    """Filter WorkItems by the months/developer/country query params and build every
-    aggregate the Analysis page needs (bar charts, monthly heatmaps, prompt) from that
-    single filtered set, so everything on the page reflects the same selection."""
+def _team_ticket_analysis_data(request, model):
+    """Filter `model` records (WorkItem or SupportTicket) by the months/developer/
+    country query params and build every aggregate the page needs (bar charts,
+    monthly heatmaps, prompt) from that single filtered set, so everything on the
+    page reflects the same selection."""
     months = _parse_month_filter(request)
     cutoff = _months_cutoff(months)
     developer_ids = request.GET.getlist("developer")
     countries = request.GET.getlist("country")
 
-    all_employee_items = (
-        Employee.objects.filter(work_items__isnull=False).distinct().prefetch_related("work_items").order_by("name")
-    )
-    filter_employees = list(all_employee_items)
+    employee_ids_with_data = model.objects.values_list("employee_id", flat=True).distinct()
+    filter_employees = list(Employee.objects.filter(pk__in=employee_ids_with_data).order_by("name"))
     filter_countries = sorted({e.country or "Unspecified" for e in filter_employees})
 
+    allowed_employee_pks = {
+        e.pk
+        for e in filter_employees
+        if (not developer_ids or str(e.pk) in developer_ids)
+        and (not countries or (e.country or "Unspecified") in countries)
+    }
+
+    all_items = model.objects.filter(employee_id__in=allowed_employee_pks).select_related("employee")
     items = []
-    for employee in filter_employees:
-        if developer_ids and str(employee.pk) not in developer_ids:
+    for item in all_items:
+        d = item.closed_date or item.created_date
+        if cutoff and (not d or d < cutoff):
             continue
-        emp_country = employee.country or "Unspecified"
-        if countries and emp_country not in countries:
-            continue
-        for item in employee.work_items.all():
-            d = item.closed_date or item.created_date
-            if cutoff and (not d or d < cutoff):
-                continue
-            items.append(item)
+        items.append(item)
 
     by_developer_count = Counter()
     by_country_count = Counter()
@@ -732,14 +733,14 @@ def _team_analysis_data(request):
     }
 
 
-def _build_team_analysis_prompt(data):
+def _build_ticket_analysis_prompt(data, record_noun="user stories/tickets", config_tab_name="Configuration"):
     summary = data["summary"]
     charts = data["charts"]
     total_items = summary["total_items"]
     if not total_items:
         return (
-            "No user stories are on file yet for the current filter. Sync from Azure DevOps or "
-            "import an Excel/CSV file on the Configuration tab, then reopen this prompt."
+            f"No {record_noun} are on file yet for the current filter. Sync from Azure DevOps or "
+            f"import an Excel/CSV file on the {config_tab_name} tab, then reopen this prompt."
         )
 
     filters = data["filters"]
@@ -774,7 +775,7 @@ def _build_team_analysis_prompt(data):
 
     return (
         f"{scope_line}"
-        f"Analyze this team's delivery history based on {total_items} tracked user stories/tickets "
+        f"Analyze this team's delivery history based on {total_items} tracked {record_noun} "
         f"totalling {summary['total_points'] or 0} story points.\n\n"
         f"Reference data (from Azure DevOps fields, for context only — please form your own "
         f"judgment from the ticket text below rather than just repeating these numbers):\n"
@@ -798,20 +799,11 @@ def _build_team_analysis_prompt(data):
     )
 
 
-def analysis_home(request):
-    settings_obj = AzureDevOpsSettings.load()
-
-    due = (
-        settings_obj.last_synced_at is None
-        or timezone.now() - settings_obj.last_synced_at >= timedelta(hours=settings_obj.auto_sync_interval_hours)
-    )
-    if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
-        run_team_ado_sync(settings_obj)
-
-    data = _team_analysis_data(request)
+def _render_ticket_analysis(request, model, template, record_noun):
+    data = _team_ticket_analysis_data(request, model)
     return render(
         request,
-        "teams/analysis.html",
+        template,
         {
             "summary": data["summary"],
             "charts": data["charts"],
@@ -824,9 +816,41 @@ def analysis_home(request):
             "story_row_total": data["story_row_total"],
             "story_row_limit": data["story_row_limit"],
             "filters": data["filters"],
-            "prompt": _build_team_analysis_prompt(data),
+            "prompt": _build_ticket_analysis_prompt(data, record_noun=record_noun),
         },
     )
+
+
+def analysis_home(request):
+    settings_obj = AzureDevOpsSettings.load()
+
+    due = (
+        settings_obj.last_synced_at is None
+        or timezone.now() - settings_obj.last_synced_at >= timedelta(hours=settings_obj.auto_sync_interval_hours)
+    )
+    if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
+        run_team_ado_sync(settings_obj)
+
+    return _render_ticket_analysis(request, WorkItem, "teams/analysis.html", "user stories/tickets")
+
+
+def support_analysis_home(request):
+    settings_obj = AzureDevOpsSettings.load()
+
+    due = (
+        settings_obj.support_last_synced_at is None
+        or timezone.now() - settings_obj.support_last_synced_at
+        >= timedelta(hours=settings_obj.support_auto_sync_interval_hours)
+    )
+    if (
+        settings_obj.support_auto_sync_enabled
+        and settings_obj.support_query_url
+        and settings_obj.personal_access_token
+        and due
+    ):
+        run_support_ado_sync(settings_obj)
+
+    return _render_ticket_analysis(request, SupportTicket, "teams/support_analysis.html", "support tickets")
 
 
 def admin_settings(request):
@@ -838,8 +862,17 @@ def admin_settings(request):
     settings_obj = AzureDevOpsSettings.load()
 
     if request.method == "POST":
-        if request.POST.get("action") == "sync_now":
+        action = request.POST.get("action")
+        if action == "sync_now":
             result, error = run_team_ado_sync(settings_obj)
+            if error:
+                messages.error(request, f"Sync failed: {error}")
+            else:
+                _flash_import_result(request, result)
+            return redirect("admin-settings")
+
+        if action == "sync_now_support":
+            result, error = run_support_ado_sync(settings_obj)
             if error:
                 messages.error(request, f"Sync failed: {error}")
             else:
@@ -855,6 +888,15 @@ def admin_settings(request):
         except ValueError:
             interval = 24
         settings_obj.auto_sync_interval_hours = max(1, interval)
+
+        settings_obj.support_query_url = request.POST.get("support_query_url", "").strip()
+        settings_obj.support_auto_sync_enabled = bool(request.POST.get("support_auto_sync_enabled"))
+        try:
+            support_interval = int(request.POST.get("support_auto_sync_interval_hours", "24"))
+        except ValueError:
+            support_interval = 24
+        settings_obj.support_auto_sync_interval_hours = max(1, support_interval)
+
         settings_obj.save()
         messages.success(request, "Settings saved.")
         return redirect("admin-settings")
@@ -949,5 +991,96 @@ def analysis_import_map(request):
     return render(
         request,
         "teams/analysis_import_map.html",
+        {"headers": headers, "rows": rows[:8], "fields": ANALYSIS_IMPORT_FIELDS, "mapping": mapping},
+    )
+
+
+@login_required
+def support_import_upload(request):
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            messages.error(request, "Choose an .xlsx or .csv file to upload.")
+            return redirect("support-import-upload")
+
+        try:
+            headers, data_rows = _read_tabular_file(upload)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("support-import-upload")
+
+        if not any(headers) or not data_rows:
+            messages.error(request, "That file needs a header row and at least one data row.")
+            return redirect("support-import-upload")
+
+        request.session["support_import_headers"] = headers
+        request.session["support_import_rows"] = data_rows[:MAX_WORK_IMPORT_ROWS]
+        return redirect("support-import-map")
+
+    return render(request, "teams/support_import_upload.html")
+
+
+@login_required
+def support_import_map(request):
+    headers = request.session.get("support_import_headers")
+    rows = request.session.get("support_import_rows")
+    if not headers or not rows:
+        messages.error(request, "Upload a file first.")
+        return redirect("support-import-upload")
+
+    if request.method == "POST":
+        mapping = {f["key"]: request.POST.get(f"map_{f['key']}", "") for f in ANALYSIS_IMPORT_FIELDS}
+        missing_required = [f["label"] for f in ANALYSIS_IMPORT_FIELDS if f["required"] and not mapping[f["key"]]]
+        if missing_required:
+            messages.error(request, f"Map a column to: {', '.join(missing_required)}.")
+            return render(
+                request,
+                "teams/support_import_map.html",
+                {"headers": headers, "rows": rows[:8], "fields": ANALYSIS_IMPORT_FIELDS, "mapping": mapping},
+            )
+
+        col_index = {header: i for i, header in enumerate(headers)}
+
+        def cell(row, key):
+            header = mapping[key]
+            idx = col_index.get(header)
+            if not header or idx is None or idx >= len(row):
+                return ""
+            return row[idx]
+
+        items = []
+        for row in rows:
+            title = cell(row, "title")
+            if not title:
+                continue
+            assignee = cell(row, "assignee")
+            items.append(
+                {
+                    "title": title,
+                    "description": cell(row, "description"),
+                    "work_item_type": cell(row, "work_item_type"),
+                    "state": cell(row, "state"),
+                    "story_points": _parse_story_points(cell(row, "story_points")),
+                    "area_path": cell(row, "area_path"),
+                    "iteration_path": cell(row, "iteration_path"),
+                    "created_date": _parse_work_date(cell(row, "created_date")),
+                    "closed_date": _parse_work_date(cell(row, "closed_date")),
+                    "external_id": cell(row, "external_id"),
+                    "url": cell(row, "url"),
+                    "assigned_to_name": assignee,
+                    "assigned_to_email": assignee,
+                }
+            )
+
+        result = import_team_records(items, SupportTicket, SupportTicket.Source.EXCEL, upsert=False)
+        del request.session["support_import_headers"]
+        del request.session["support_import_rows"]
+        _flash_import_result(request, result)
+        return redirect("support-analysis")
+
+    mapping = {f["key"]: _guess_work_column(headers, f["key"]) for f in ANALYSIS_IMPORT_FIELDS}
+    return render(
+        request,
+        "teams/support_import_map.html",
         {"headers": headers, "rows": rows[:8], "fields": ANALYSIS_IMPORT_FIELDS, "mapping": mapping},
     )

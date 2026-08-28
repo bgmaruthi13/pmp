@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
-from teams.models import DEFAULT_ROLES, Employee, EmployeeNote, Role, WorkItem
+from teams.models import DEFAULT_ROLES, Employee, EmployeeNote, Role, SupportTicket, WorkItem
 
 
 class Command(BaseCommand):
@@ -350,6 +350,67 @@ class Command(BaseCommand):
                         "project_label": "eSuvidha-Digital",
                         "area_path": sample_areas[i],
                         "created_date": closed - timedelta(days=random.randint(3, 14)),
+                        "closed_date": closed,
+                    },
+                )
+
+        # -- Sample support ticket history (for the Team page's Support view) --
+        ticket_types = ["Incident", "Service Request", "Bug"]
+        ticket_states = ["Resolved", "Resolved", "Resolved", "In Progress"]
+        support_titles = [
+            "Taxpayer unable to download Form 16",
+            "Payment gateway timeout on refund page",
+            "Reset access for locked officer account",
+            "TRACES report export stuck at 90%",
+            "Grievance status not updating after closure",
+            "SMS OTP delayed for e-KYC verification",
+            "Duplicate challan entries in reconciliation",
+            "Portal login fails after password change",
+            "Bulk upload template rejected as invalid",
+            "Dashboard widget showing stale counts",
+        ]
+        support_descriptions = [
+            "Taxpayer reports the Form 16 PDF download link returns a blank page for AY 2024-25 records.",
+            "Refund status page times out intermittently when the payment gateway is under high load.",
+            "Field officer account locked after repeated failed logins; needs manual unlock and password reset.",
+            "TRACES report export progress bar freezes at 90% for exports over 5,000 rows.",
+            "Grievance ticket marked resolved by the agent but the taxpayer-facing status still shows pending.",
+            "e-KYC OTP delivery is delayed by several minutes during peak evening hours, causing session timeouts.",
+            "Nightly reconciliation shows duplicate challan entries when a payment is retried after a gateway error.",
+            "Users are unable to log in immediately after a password reset; error clears after roughly 15 minutes.",
+            "Bulk upload rejects a correctly formatted CSV template, citing a column mismatch that isn't present.",
+            "Admin dashboard widgets show counts from the previous day instead of refreshing on page load.",
+        ]
+        support_components = [
+            "eSuvidha-Digital\\Documents",
+            "eSuvidha-Digital\\Payments",
+            "eSuvidha-Digital\\AccessControl",
+            "eSuvidha-Digital\\Reporting",
+            "eSuvidha-Digital\\Grievance",
+            "eSuvidha-Digital\\Notifications",
+            "eSuvidha-Digital\\Reconciliation",
+            "eSuvidha-Digital\\AccessControl",
+            "eSuvidha-Digital\\Integration",
+            "eSuvidha-Digital\\Reporting",
+        ]
+        for emp_name in ["Divya Menon", "Sanjay Iyer"]:
+            employee = employees[emp_name]
+            for i in range(10):
+                months_ago = 9 - i
+                closed = today.replace(day=1) - timedelta(days=months_ago * 30 - random.randint(0, 20))
+                SupportTicket.objects.get_or_create(
+                    employee=employee,
+                    external_id=f"{2000 + i}",
+                    defaults={
+                        "source": SupportTicket.Source.EXCEL,
+                        "title": support_titles[i],
+                        "description": support_descriptions[i],
+                        "work_item_type": random.choice(ticket_types),
+                        "state": random.choice(ticket_states),
+                        "story_points": random.choice([1, 2, 3, 5]),
+                        "project_label": "eSuvidha-Digital",
+                        "area_path": support_components[i],
+                        "created_date": closed - timedelta(days=random.randint(1, 5)),
                         "closed_date": closed,
                     },
                 )
