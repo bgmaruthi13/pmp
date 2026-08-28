@@ -3,14 +3,14 @@
 {% block content %}
     <div class="tabs">
         <a href="{% url 'team-org' %}">Directory</a>
-        <a href="{% url 'team-efficiency' %}">Efficiency</a>
-        <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'team-analysis' %}">Change Management</a>
         <a href="{% url 'support-analysis' %}">Support</a>
+        <a href="{% url 'team-efficiency' %}">Efficiency</a>
         <a href="{% url 'admin-settings' %}" class="active">Configuration</a>
     </div>
     <p style="color:var(--muted);max-width:700px;">
-        Everything needed to bring user story and support ticket data into the Analysis and Support
-        tabs lives here &mdash; the Azure DevOps connections, automatic sync schedules, and
+        Everything needed to bring user story and support ticket data into the Change Management and
+        Support tabs lives here &mdash; the Azure DevOps connections, automatic sync schedules, and
         Excel/CSV import.
     </p>
 
@@ -50,7 +50,7 @@
             </p>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
                 Used for every Azure DevOps query &mdash; each person's own sync, the team-wide
-                Analysis sync, and the Support sync below.
+                Change Management sync, and the Support sync below.
             </p>
             <p>
                 <label for="team_query_url">Team-wide user stories query URL</label>
@@ -79,7 +79,7 @@
                 >
             </p>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
-                While on, visiting the Analysis tab re-syncs in the background once this interval has
+                While on, visiting the Change Management tab re-syncs in the background once this interval has
                 passed &mdash; at most once per interval, however many people visit. For a schedule
                 that doesn't depend on someone visiting the page, point an external daily cron (Render
                 Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_azure_devops</code> instead.
@@ -174,7 +174,7 @@
     </div>
 
     <p style="margin-top:1.5rem;">
-        <a href="{% url 'team-analysis' %}">Go to Analysis &rarr;</a>
+        <a href="{% url 'team-analysis' %}">Go to Change Management &rarr;</a>
         &middot; <a href="{% url 'support-analysis' %}">Go to Support &rarr;</a>
     </p>
 {% endblock %}

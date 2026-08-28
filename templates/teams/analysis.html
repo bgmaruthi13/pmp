@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Analysis · eSuvidha Ops Portal{% endblock %}
+{% block title %}Change Management · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <div class="tabs">
         <a href="{% url 'team-org' %}">Directory</a>
-        <a href="{% url 'team-efficiency' %}">Efficiency</a>
-        <a href="{% url 'team-analysis' %}" class="active">Analysis</a>
+        <a href="{% url 'team-analysis' %}" class="active">Change Management</a>
         <a href="{% url 'support-analysis' %}">Support</a>
+        <a href="{% url 'team-efficiency' %}">Efficiency</a>
         {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Configuration</a>{% endif %}
     </div>
     <p style="color:var(--muted);max-width:760px;">
