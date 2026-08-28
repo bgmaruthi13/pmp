@@ -1,4 +1,5 @@
 import base64
+import re
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -11,6 +12,7 @@ BATCH_SIZE = 200
 FIELDS = [
     "System.Id",
     "System.Title",
+    "System.Description",
     "System.WorkItemType",
     "System.State",
     "System.TeamProject",
@@ -61,6 +63,15 @@ def _parse_date(value):
         return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
     except ValueError:
         return None
+
+
+def _strip_html(value):
+    """Azure DevOps descriptions are HTML; reduce to plain text for storage/display."""
+    if not value:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", value)
+    text = re.sub(r"&nbsp;", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _parse_assigned_to(value):
@@ -139,6 +150,7 @@ def fetch_work_items(query_url, pat):
                 {
                     "external_id": str(work_item_id or ""),
                     "title": fields.get("System.Title", ""),
+                    "description": _strip_html(fields.get("System.Description", "")),
                     "work_item_type": fields.get("System.WorkItemType", ""),
                     "state": fields.get("System.State", ""),
                     "project_label": fields.get("System.TeamProject", ""),

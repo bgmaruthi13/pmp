@@ -308,6 +308,30 @@ class Command(BaseCommand):
             "Fix timezone bug in due-date display",
             "Add retry queue for failed webhooks",
         ]
+        sample_descriptions = [
+            "Concurrent OTP verification requests could double-count retries, occasionally locking out valid attempts.",
+            "The grievance list loads all records at once; add server-side pagination to keep page loads fast as volume grows.",
+            "Tune batch-window configuration and reconciliation job scheduling to fit within the nightly maintenance window.",
+            "UIDAI e-KYC occasionally returns a null PAN field, which currently throws an unhandled exception.",
+            "Replace the fixed-interval refund status poller with an event-driven update to reduce unnecessary API calls.",
+            "Admin console actions are not currently logged; add an audit trail for compliance reporting.",
+            "Generic upload failures confuse taxpayers; surface the specific validation errors returned by the parser.",
+            "Form 26AS lookups hit the upstream service on every request; add a short-lived cache to reduce load.",
+            "Due dates render in UTC instead of the taxpayer's local timezone on the grievance dashboard.",
+            "Add configurable retry parameters (max attempts, backoff) for failed outbound webhook deliveries.",
+        ]
+        sample_areas = [
+            "eSuvidha-Digital\\Notifications",
+            "eSuvidha-Digital\\Grievance",
+            "eSuvidha-Digital\\Reconciliation",
+            "eSuvidha-Digital\\Integration",
+            "eSuvidha-Digital\\Refunds",
+            "eSuvidha-Digital\\Portal",
+            "eSuvidha-Digital\\Portal",
+            "eSuvidha-Digital\\Reconciliation",
+            "eSuvidha-Digital\\Grievance",
+            "eSuvidha-Digital\\Integration",
+        ]
         for emp_name in ["Divya Menon", "Sanjay Iyer"]:
             employee = employees[emp_name]
             for i in range(10):
@@ -319,10 +343,12 @@ class Command(BaseCommand):
                     defaults={
                         "source": WorkItem.Source.EXCEL,
                         "title": sample_titles[i],
+                        "description": sample_descriptions[i],
                         "work_item_type": random.choice(work_item_types),
                         "state": random.choice(states),
                         "story_points": random.choice([1, 2, 3, 5, 8]),
                         "project_label": "eSuvidha-Digital",
+                        "area_path": sample_areas[i],
                         "created_date": closed - timedelta(days=random.randint(3, 14)),
                         "closed_date": closed,
                     },

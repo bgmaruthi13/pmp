@@ -153,6 +153,7 @@ class WorkItem(models.Model):
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL)
     external_id = models.CharField(max_length=50, blank=True)
     title = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
     work_item_type = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=100, blank=True)
     story_points = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True)

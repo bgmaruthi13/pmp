@@ -37,6 +37,7 @@ MAX_WORK_IMPORT_ROWS = 1000
 
 WORK_IMPORT_FIELDS = [
     {"key": "title", "label": "Title", "required": True},
+    {"key": "description", "label": "Description", "required": False},
     {"key": "work_item_type", "label": "Type", "required": False},
     {"key": "state", "label": "State", "required": False},
     {"key": "story_points", "label": "Story Points", "required": False},
@@ -394,6 +395,7 @@ def employee_import_map(request, pk):
                 employee=employee,
                 source=WorkItem.Source.EXCEL,
                 title=title,
+                description=cell(row, "description"),
                 work_item_type=cell(row, "work_item_type"),
                 state=cell(row, "state"),
                 story_points=_parse_story_points(cell(row, "story_points")),
@@ -568,18 +570,33 @@ def _heat_level(count, max_count):
     return 1
 
 
-def _month_matrix(counts_by_row, months_columns):
+def _cross_matrix(counts_by_row, columns):
+    """Build a row-label x column-label count matrix (used for month columns and,
+    separately, country columns), each cell shaded by a heat level relative to the
+    matrix's own max cell value."""
     all_counts = [c for row in counts_by_row.values() for c in row.values()]
     max_count = max(all_counts, default=0)
     rows = []
-    for label, month_counts in counts_by_row.items():
+    for label, col_counts in counts_by_row.items():
         cells = [
-            {"count": month_counts.get(month, 0), "level": _heat_level(month_counts.get(month, 0), max_count)}
-            for month in months_columns
+            {"count": col_counts.get(col, 0), "level": _heat_level(col_counts.get(col, 0), max_count)}
+            for col in columns
         ]
-        rows.append({"label": label, "total": sum(month_counts.values()), "cells": cells})
+        rows.append({"label": label, "total": sum(col_counts.values()), "cells": cells})
     rows.sort(key=lambda r: -r["total"])
     return rows
+
+
+def _classify_work_category(item):
+    """Lightweight keyword heuristic: no Azure DevOps field cleanly separates
+    'configuration' from 'development' work, so scan the type/tags/title/description
+    for configuration-flavored language and bucket everything else as Development."""
+    haystack = " ".join(
+        [item.work_item_type or "", item.tags or "", item.title or "", item.description or ""]
+    ).lower()
+    if "config" in haystack:
+        return "Configuration"
+    return "Development"
 
 
 def _parse_month_filter(request):
@@ -633,18 +650,32 @@ def _team_analysis_data(request):
     by_developer_count = Counter()
     by_country_count = Counter()
     by_type = Counter()
+    by_component_count = Counter()
+    by_category_count = Counter()
     monthly = Counter()
     dev_month_counts = {}
     country_month_counts = {}
+    component_country_counts = {}
+    category_country_counts = {}
     rows_by_employee = {}
+    countries_present = set()
     total_points = 0
 
     for item in items:
         employee = item.employee
         emp_country = employee.country or "Unspecified"
+        component = item.area_path or "Unspecified"
+        category = _classify_work_category(item)
+        countries_present.add(emp_country)
+
         by_developer_count[employee.name] += 1
         by_country_count[emp_country] += 1
         by_type[item.work_item_type or "Unspecified"] += 1
+        by_component_count[component] += 1
+        by_category_count[category] += 1
+        component_country_counts.setdefault(component, Counter())[emp_country] += 1
+        category_country_counts.setdefault(category, Counter())[emp_country] += 1
+
         points = item.story_points or 0
         total_points += points
 
@@ -660,6 +691,7 @@ def _team_analysis_data(request):
             country_month_counts.setdefault(emp_country, Counter())[month] += 1
 
     months_columns = sorted(monthly.keys())
+    countries_columns = sorted(countries_present)
     max_monthly = max(monthly.values(), default=0)
     monthly_series = [
         {"month": month, "count": count, "pct": round(count / max_monthly * 100) if max_monthly else 0}
@@ -667,6 +699,9 @@ def _team_analysis_data(request):
     ]
 
     summary_rows = sorted(rows_by_employee.values(), key=lambda r: -r["item_count"])
+
+    story_rows = sorted(items, key=lambda i: i.closed_date or i.created_date or date.min, reverse=True)
+    story_row_limit = 150
 
     return {
         "items": items,
@@ -680,11 +715,31 @@ def _team_analysis_data(request):
             "by_developer": _bar_series(by_developer_count),
             "by_country": _bar_series(by_country_count),
             "by_type": by_type.most_common(),
+            "by_component": _bar_series(by_component_count),
+            "by_category": _bar_series(by_category_count),
             "monthly_series": monthly_series,
         },
         "months_columns": months_columns,
-        "developer_matrix": _month_matrix(dev_month_counts, months_columns),
-        "country_matrix": _month_matrix(country_month_counts, months_columns),
+        "developer_matrix": _cross_matrix(dev_month_counts, months_columns),
+        "country_matrix": _cross_matrix(country_month_counts, months_columns),
+        "countries_columns": countries_columns,
+        "component_matrix": _cross_matrix(component_country_counts, countries_columns),
+        "category_matrix": _cross_matrix(category_country_counts, countries_columns),
+        "story_rows": [
+            {
+                "employee": i.employee,
+                "title": i.title,
+                "description": i.description,
+                "country": i.employee.country or "Unspecified",
+                "type": i.work_item_type,
+                "component": i.area_path,
+                "category": _classify_work_category(i),
+                "url": i.url,
+            }
+            for i in story_rows[:story_row_limit]
+        ],
+        "story_row_total": len(story_rows),
+        "story_row_limit": story_row_limit,
         "filters": {
             "month_options": MONTH_RANGE_OPTIONS,
             "selected_months": months,
@@ -721,8 +776,16 @@ def _build_team_analysis_prompt(data):
     dev_lines = "\n".join(f"- {d['label']}: {d['count']}" for d in charts["by_developer"])
     country_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_country"])
     type_lines = "\n".join(f"- {t}: {c}" for t, c in charts["by_type"])
+    component_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_component"])
+    category_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_category"])
     monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in charts["monthly_series"])
-    sample_titles = "\n".join(f"- [{i.work_item_type or 'Item'}] {i.title}" for i in data["items"][:40])
+    sample_lines = []
+    for i in data["items"][:40]:
+        line = f"- [{i.work_item_type or 'Item'}] {i.title}"
+        if i.description:
+            line += f" — {i.description[:150]}"
+        sample_lines.append(line)
+    sample_titles = "\n".join(sample_lines)
 
     return (
         f"{scope_line}"
@@ -731,13 +794,18 @@ def _build_team_analysis_prompt(data):
         f"By developer:\n{dev_lines}\n\n"
         f"By country:\n{country_lines}\n\n"
         f"By type:\n{type_lines}\n\n"
+        f"By product/component (Area Path):\n{component_lines}\n\n"
+        f"Configuration vs Development work (keyword-based estimate, not authoritative):\n{category_lines}\n\n"
         f"Monthly delivery trend:\n{monthly_lines}\n\n"
-        f"Sample tickets:\n{sample_titles}\n\n"
+        f"Sample tickets (with description where available):\n{sample_titles}\n\n"
         "Please summarize: (1) the overall delivery trend over time and whether it's accelerating, "
         "steady, or slowing, (2) the mix of user story types being worked on and what that suggests "
         "about current priorities, (3) how work is distributed across countries/locations and "
-        "developers, and whether that looks balanced, and (4) the important subjects/themes this "
-        "team has been working on, based on the sample ticket titles above."
+        "developers, and whether that looks balanced, (4) which products/components are generating "
+        "the most requests or changes and what that suggests about where investment is needed, "
+        "(5) the split between configuration and development-type work and whether that balance "
+        "looks right, and (6) the important subjects/themes this team has been working on, based on "
+        "the sample ticket titles and descriptions above."
     )
 
 
@@ -761,6 +829,12 @@ def analysis_home(request):
             "months_columns": data["months_columns"],
             "developer_matrix": data["developer_matrix"],
             "country_matrix": data["country_matrix"],
+            "countries_columns": data["countries_columns"],
+            "component_matrix": data["component_matrix"],
+            "category_matrix": data["category_matrix"],
+            "story_rows": data["story_rows"],
+            "story_row_total": data["story_row_total"],
+            "story_row_limit": data["story_row_limit"],
             "filters": data["filters"],
             "prompt": _build_team_analysis_prompt(data),
         },
@@ -862,6 +936,7 @@ def analysis_import_map(request):
             items.append(
                 {
                     "title": title,
+                    "description": cell(row, "description"),
                     "work_item_type": cell(row, "work_item_type"),
                     "state": cell(row, "state"),
                     "story_points": _parse_story_points(cell(row, "story_points")),
