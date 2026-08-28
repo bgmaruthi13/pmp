@@ -1,11 +1,27 @@
-from django.contrib.auth.models import User
+import uuid
+
 from django.db import models
 from django.urls import reverse
+
+from teams.models import Employee
+
+
+class Area(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Project(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    lead = models.ForeignKey(
+        Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="projects_led"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -24,16 +40,101 @@ class Task(models.Model):
         IN_PROGRESS = "in_progress", "In Progress"
         DONE = "done", "Done"
 
+    class TicketType(models.TextChoices):
+        PLANNED = "planned", "Planned"
+        ADHOC = "adhoc", "Ad Hoc"
+
+    ticket_id = models.CharField(max_length=20, unique=True, editable=False)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    ticket_type = models.CharField(max_length=10, choices=TicketType.choices, default=TicketType.PLANNED)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.TODO)
-    assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    assigned_by = models.ForeignKey(
+        Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets_assigned"
+    )
+    assignee = models.ForeignKey(
+        Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets_received"
+    )
     due_date = models.DateField(null=True, blank=True)
+    sdm_attention = models.BooleanField(default=False)
+    remarks = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.title
+        return f"{self.ticket_id} · {self.title}"
+
+    def save(self, *args, **kwargs):
+        if not self.ticket_id:
+            last = Task.objects.order_by("-id").first()
+            next_num = (last.id if last else 0) + 1
+            self.ticket_id = f"TCK-{next_num:04d}"
+        super().save(*args, **kwargs)
+
+
+class Application(models.Model):
+    class Sensitivity(models.TextChoices):
+        CRITICAL = "2-critical", "2-Critical"
+        HIGH = "3-high", "3-High"
+        MEDIUM = "4-medium", "4-Medium"
+
+    class ObjectType(models.TextChoices):
+        APPLICATION = "application", "Application"
+        SERVICE = "service", "Service"
+
+    class ApplicationType(models.TextChoices):
+        BUSINESS = "business_capabilities", "Business Capabilities"
+        IT = "it_capabilities", "IT Capabilities"
+
+    class ProcurementType(models.TextChoices):
+        IN_HOUSE = "in_house", "In House Development"
+        SOFTWARE_PACKAGE = "software_package", "Software Package"
+
+    global_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    name = models.CharField(max_length=200)
+    sensitivity = models.CharField(max_length=20, choices=Sensitivity.choices, default=Sensitivity.HIGH)
+    architecture_container = models.CharField(max_length=150, blank=True)
+    gsc_owner = models.CharField(max_length=150, blank=True)
+    it_perimeter_lvl2 = models.CharField(max_length=150, blank=True)
+    it_perimeter_lvl3 = models.CharField(max_length=150, blank=True)
+    object_type = models.CharField(max_length=20, choices=ObjectType.choices, default=ObjectType.APPLICATION)
+    application_type = models.CharField(max_length=30, choices=ApplicationType.choices, blank=True)
+    procurement_type = models.CharField(max_length=30, choices=ProcurementType.choices, blank=True)
+    officer = models.CharField(max_length=150, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class TransitionSystem(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class TransitionDocument(models.Model):
+    category = models.CharField(max_length=150)
+    document = models.CharField(max_length=200)
+    purpose = models.TextField(blank=True)
+    owner = models.CharField(max_length=150, blank=True)
+    systems = models.ManyToManyField(TransitionSystem, blank=True, related_name="documents")
+    comments = models.CharField(max_length=200, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.document

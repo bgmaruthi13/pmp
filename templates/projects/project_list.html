@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Projects{% endblock %}
+{% block title %}Projects · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <h1>Projects</h1>
     {% if user.is_authenticated %}
@@ -9,7 +9,7 @@
         {% for project in projects %}
             <li>
                 <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
-                <div><small>{{ project.tasks.count }} task{{ project.tasks.count|pluralize }}</small></div>
+                <div><small>{{ project.tasks.count }} ticket{{ project.tasks.count|pluralize }}{% if project.lead %} · Lead: {{ project.lead.name }}{% endif %}</small></div>
             </li>
         {% empty %}
             <li>No projects yet.</li>

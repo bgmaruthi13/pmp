@@ -1,12 +1,23 @@
-# PMP — Project Management System
+# eSuvidha Ops Portal — Team & Project Management System
 
-A simple Django app for tracking projects and tasks on a kanban-style board.
+A Django app for tracking a team's org structure, project tickets, an
+application inventory, and a project transition checklist — styled after
+e-Filing-style government portals (an internal tool skin only; not
+affiliated with or a copy of any real government site).
 
 ## Features
 
-- Projects with descriptions
-- Tasks per project with status (To Do / In Progress / Done), assignee, and due date
-- Kanban board view per project
+- **Team** — org chart of employees by role (Project Lead, Platform
+  Engineer Lead, Platform/Database Engineers, DevOps, SDM), with reporting
+  lines and per-person ticket counts
+- **Projects** — kanban board per project (To Do / In Progress / Done)
+- **Ticket Tracker** — planned + ad hoc tickets across all projects, with
+  auto-numbered ticket IDs, area, assignee/assigned-by, target date, SDM
+  attention flag, status, and remarks
+- **Application Inventory** — application/service registry with
+  sensitivity, ownership, and procurement metadata
+- **Transition Plan** — a project-transition document checklist with
+  per-integration-system coverage
 - Django admin for managing everything
 
 ## Setup
@@ -18,15 +29,23 @@ pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py createsuperuser
+python manage.py seed_demo   # optional: realistic fictitious demo data
 python manage.py runserver
 ```
 
 Visit `http://127.0.0.1:8000/` for the project list, or `/admin/` for the admin site.
 
+`seed_demo` (in `projects/management/commands/`) populates the app with
+made-up employees, projects, tickets, applications, and transition
+documents themed around a fictitious income-tax e-filing platform — no
+real organizational data.
+
 ## Project structure
 
 - `config/` — Django project settings and root URLs
-- `projects/` — app with `Project` and `Task` models, views, and URLs
+- `teams/` — `Employee` model, org-chart views
+- `projects/` — `Project`, `Task` (ticket), `Application`,
+  `TransitionDocument`/`TransitionSystem` models, views, and URLs
 - `templates/` — HTML templates
 
 ## Deployment (Render + Neon Postgres)

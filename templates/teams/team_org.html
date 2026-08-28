@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Team · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <h1>Team Organization</h1>
+    <p><small>Count of tickets assigned, grouped by role.</small></p>
+    {% for group in groups %}
+        <div class="org-role">
+            <h3>{{ group.label }} <small>({{ group.total }})</small></h3>
+            <div class="table-wrap">
+            <table>
+                <tbody>
+                    {% for member in group.members %}
+                        <tr>
+                            <td><a href="{{ member.get_absolute_url }}">{{ member.name }}</a></td>
+                            <td>{{ member.manager.name|default:"—" }}</td>
+                            <td>{{ member.ticket_count }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    {% empty %}
+        <p>No team members yet.</p>
+    {% endfor %}
+    <p><strong>Grand Total: {{ grand_total }}</strong></p>
+{% endblock %}

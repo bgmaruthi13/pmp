@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Ticket Tracker · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <h1>Ticket Tracker</h1>
+    <div class="tabs">
+        <a href="{% url 'ticket-tracker' %}" class="{% if active_type == 'all' %}active{% endif %}">All</a>
+        <a href="?type=planned" class="{% if active_type == 'planned' %}active{% endif %}">Planned</a>
+        <a href="?type=adhoc" class="{% if active_type == 'adhoc' %}active{% endif %}">Ad Hoc</a>
+    </div>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Ticket</th>
+                <th>Title</th>
+                <th>Project</th>
+                <th>Area</th>
+                <th>Type</th>
+                <th>Assigned By</th>
+                <th>Assigned To</th>
+                <th>Target Date</th>
+                <th>SDM Attention</th>
+                <th>Status</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+                <tr>
+                    <td>{{ ticket.ticket_id }}</td>
+                    <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.title }}</a></td>
+                    <td>{{ ticket.project.name }}</td>
+                    <td>{{ ticket.area|default:"—" }}</td>
+                    <td>{{ ticket.get_ticket_type_display }}</td>
+                    <td>{{ ticket.assigned_by.name|default:"—" }}</td>
+                    <td>{{ ticket.assignee.name|default:"—" }}</td>
+                    <td>{{ ticket.due_date|default:"—" }}</td>
+                    <td>{% if ticket.sdm_attention %}<span class="pill sdm">Yes</span>{% endif %}</td>
+                    <td>{{ ticket.get_status_display }}</td>
+                    <td>{{ ticket.remarks }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="11">No tickets yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

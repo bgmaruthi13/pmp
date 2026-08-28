@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.name }} · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <h1>{{ employee.name }}</h1>
+    <p>{{ employee.get_role_display }}{% if employee.manager %} · Reports to {{ employee.manager.name }}{% endif %}</p>
+
+    <h3>Assigned tickets</h3>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>Ticket</th><th>Title</th><th>Project</th><th>Status</th><th>Target Date</th></tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+                <tr>
+                    <td>{{ ticket.ticket_id }}</td>
+                    <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.title }}</a></td>
+                    <td>{{ ticket.project.name }}</td>
+                    <td>{{ ticket.get_status_display }}</td>
+                    <td>{{ ticket.due_date|default:"—" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">No tickets assigned.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Applications · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <h1>Application Inventory</h1>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Global ID</th>
+                <th>Application</th>
+                <th>Sensitivity</th>
+                <th>Architecture Container</th>
+                <th>GSC Owner</th>
+                <th>IT Perimeter lvl2</th>
+                <th>IT Perimeter lvl3</th>
+                <th>Object Type</th>
+                <th>Application Type</th>
+                <th>Procurement Type</th>
+                <th>Application Officer</th>
+                <th>Country</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in applications %}
+                <tr>
+                    <td><small>{{ app.global_id }}</small></td>
+                    <td>{{ app.name }}</td>
+                    <td>{{ app.get_sensitivity_display }}</td>
+                    <td>{{ app.architecture_container }}</td>
+                    <td>{{ app.gsc_owner|default:"—" }}</td>
+                    <td>{{ app.it_perimeter_lvl2|default:"—" }}</td>
+                    <td>{{ app.it_perimeter_lvl3|default:"—" }}</td>
+                    <td>{{ app.get_object_type_display }}</td>
+                    <td>{{ app.get_application_type_display }}</td>
+                    <td>{{ app.get_procurement_type_display }}</td>
+                    <td>{{ app.officer|default:"—" }}</td>
+                    <td>{{ app.country|default:"—" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="12">No applications yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}
