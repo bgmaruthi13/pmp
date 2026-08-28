@@ -43,15 +43,21 @@
                     </select>
                 </p>
                 <p style="margin:0;">
+                    <label for="q">Search title/description</label>
+                    <input type="text" name="q" id="q" value="{{ filters.query }}" placeholder="e.g. OTP, refund" style="width:auto;min-width:220px;">
+                </p>
+                <p style="margin:0;">
                     <button class="btn" type="submit">Apply Filters</button>
                     {% if filters.active %}
                         <a class="btn" href="{% url 'team-analysis' %}" style="background:#8a97a6;">Clear</a>
                     {% endif %}
+                    <a class="btn" href="{% url 'analysis-export' %}?{{ request.GET.urlencode }}" style="background:#2f7d4f;">Download Excel</a>
                 </p>
             </div>
             <p style="color:var(--muted);font-size:0.78rem;margin:0.6rem 0 0;">
                 Hold Ctrl/Cmd (or Shift for a range) to select multiple developers or countries.
-                Leaving a filter empty includes everyone.
+                Leaving a filter empty includes everyone. Click a developer/country bar or heatmap row
+                to drill into just that one.
             </p>
         </form>
     {% endif %}
@@ -60,6 +66,15 @@
         <div class="stat-tile"><div class="stat-value">{{ summary.total_items }}</div><div class="stat-label">Work items</div></div>
         <div class="stat-tile"><div class="stat-value">{{ summary.total_points|default:"0" }}</div><div class="stat-label">Story points</div></div>
         <div class="stat-tile"><div class="stat-value">{{ summary.employee_count }}</div><div class="stat-label">Team members with data</div></div>
+        {% if summary.trend %}
+            <div class="stat-tile">
+                <div class="stat-value">
+                    {% if summary.trend.direction == "up" %}▲{% elif summary.trend.direction == "down" %}▼{% else %}▬{% endif %}
+                    {{ summary.trend.pct }}%
+                </div>
+                <div class="stat-label">{{ summary.trend.last_month }} ({{ summary.trend.last_count }}) vs {{ summary.trend.prev_month }} ({{ summary.trend.prev_count }})</div>
+            </div>
+        {% endif %}
     </div>
 
     {% if summary.rows %}
@@ -68,11 +83,15 @@
                 <h3 style="margin-top:0;margin-bottom:0.2rem;">Tickets by Developer</h3>
                 <div class="bar-chart">
                     {% for row in charts.by_developer %}
-                        <div class="bar-col">
+                        {% if row.href %}
+                            <a href="{{ row.href }}" class="bar-col" title="Filter to {{ row.label }}: {{ row.count }}">
+                        {% else %}
+                            <div class="bar-col">
+                        {% endif %}
                             <div class="bar-count">{{ row.count }}</div>
-                            <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                            <div class="bar" style="height: {{ row.pct }}%;"></div>
                             <div class="bar-label">{{ row.label }}</div>
-                        </div>
+                        {% if row.href %}</a>{% else %}</div>{% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -80,11 +99,15 @@
                 <h3 style="margin-top:0;margin-bottom:0.2rem;">Tickets by Country</h3>
                 <div class="bar-chart">
                     {% for row in charts.by_country %}
-                        <div class="bar-col">
+                        {% if row.href %}
+                            <a href="{{ row.href }}" class="bar-col" title="Filter to {{ row.label }}: {{ row.count }}">
+                        {% else %}
+                            <div class="bar-col">
+                        {% endif %}
                             <div class="bar-count">{{ row.count }}</div>
-                            <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                            <div class="bar" style="height: {{ row.pct }}%;"></div>
                             <div class="bar-label">{{ row.label }}</div>
-                        </div>
+                        {% if row.href %}</a>{% else %}</div>{% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -121,6 +144,37 @@
             </div>
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.25rem;">
+            <div class="column">
+                <h3 style="margin-top:0;margin-bottom:0.2rem;">Work Items by Priority</h3>
+                <div class="bar-chart">
+                    {% for row in charts.by_priority %}
+                        <div class="bar-col">
+                            <div class="bar-count">{{ row.count }}</div>
+                            <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                            <div class="bar-label">{{ row.label }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="column">
+                <h3 style="margin-top:0;margin-bottom:0.2rem;">Top Tags</h3>
+                {% if charts.by_tag %}
+                    <div class="bar-chart">
+                        {% for row in charts.by_tag %}
+                            <div class="bar-col">
+                                <div class="bar-count">{{ row.count }}</div>
+                                <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                                <div class="bar-label">{{ row.label }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="color:var(--muted);font-size:0.85rem;">No tags set on these items.</p>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="column" style="margin-top:1.25rem;">
             <h3 style="margin-top:0;margin-bottom:0.2rem;">Monthly Trend by Developer</h3>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:0;">Darker cells mean more tickets closed/created that month.</p>
@@ -136,7 +190,7 @@
                     <tbody>
                         {% for row in developer_matrix %}
                             <tr>
-                                <td style="white-space:nowrap;">{{ row.label }}</td>
+                                <td style="white-space:nowrap;">{% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td>
                                 {% for cell in row.cells %}
                                     <td class="heat-{{ cell.level }}" style="text-align:center;">{% if cell.count %}{{ cell.count }}{% endif %}</td>
                                 {% endfor %}
@@ -163,7 +217,7 @@
                     <tbody>
                         {% for row in country_matrix %}
                             <tr>
-                                <td style="white-space:nowrap;">{{ row.label }}</td>
+                                <td style="white-space:nowrap;">{% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td>
                                 {% for cell in row.cells %}
                                     <td class="heat-{{ cell.level }}" style="text-align:center;">{% if cell.count %}{{ cell.count }}{% endif %}</td>
                                 {% endfor %}

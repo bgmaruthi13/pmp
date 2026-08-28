@@ -153,6 +153,9 @@
         .bar-chart .bar-count { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; }
         .bar-chart .bar { width: 100%; max-width: 28px; background: var(--navy); border-radius: 4px 4px 0 0; min-height: 3px; }
         .bar-chart .bar-label { font-size: 0.68rem; color: var(--muted); margin-top: 0.3rem; writing-mode: vertical-rl; transform: rotate(180deg); max-height: 60px; }
+        .bar-chart a.bar-col { text-decoration: none; color: inherit; cursor: pointer; }
+        .bar-chart a.bar-col:hover .bar { background: var(--orange, #c0392b); }
+        .bar-chart a.bar-col:hover .bar-label { color: var(--navy-dark); }
         .stat-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.75rem 0 1.25rem; }
         .stat-tile { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem 0.9rem; }
         .stat-tile .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--navy-dark); }

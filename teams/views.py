@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 from collections import Counter
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -9,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -546,13 +547,35 @@ def _flash_import_result(request, result):
 
 MONTH_RANGE_OPTIONS = list(range(1, 13))
 
+AGING_BUCKET_LABELS = ["0–7 days", "8–14 days", "15–30 days", "31+ days"]
 
-def _bar_series(counter):
+
+def _bar_series(counter, link_for=None):
     max_count = max(counter.values(), default=0)
-    return [
-        {"label": label or "Unspecified", "count": count, "pct": round(count / max_count * 100) if max_count else 0}
-        for label, count in counter.most_common()
-    ]
+    rows = []
+    for label, count in counter.most_common():
+        row = {"label": label or "Unspecified", "count": count, "pct": round(count / max_count * 100) if max_count else 0}
+        if link_for:
+            href = link_for(label)
+            if href:
+                row["href"] = href
+        rows.append(row)
+    return rows
+
+
+def _split_tags(raw):
+    if not raw:
+        return []
+    return [part.strip() for part in re.split(r"[;,]", raw) if part.strip()]
+
+
+def _filter_link(request, param, value):
+    """Build a URL for the current page that keeps every other active filter but
+    narrows `param` down to a single `value` — used to make chart bars and heatmap
+    row labels clickable drill-down filters."""
+    params = request.GET.copy()
+    params.setlist(param, [str(value)])
+    return "?" + params.urlencode()
 
 
 def _heat_level(count, max_count):
@@ -570,10 +593,11 @@ def _heat_level(count, max_count):
     return 1
 
 
-def _cross_matrix(counts_by_row, columns):
+def _cross_matrix(counts_by_row, columns, hrefs=None):
     """Build a row-label x column-label count matrix (used for month columns and,
     separately, country columns), each cell shaded by a heat level relative to the
-    matrix's own max cell value."""
+    matrix's own max cell value. `hrefs`, if given, is a {label: url} map used to
+    make row labels clickable drill-down filters."""
     all_counts = [c for row in counts_by_row.values() for c in row.values()]
     max_count = max(all_counts, default=0)
     rows = []
@@ -582,7 +606,10 @@ def _cross_matrix(counts_by_row, columns):
             {"count": col_counts.get(col, 0), "level": _heat_level(col_counts.get(col, 0), max_count)}
             for col in columns
         ]
-        rows.append({"label": label, "total": sum(col_counts.values()), "cells": cells})
+        row = {"label": label, "total": sum(col_counts.values()), "cells": cells}
+        if hrefs is not None:
+            row["href"] = hrefs.get(label)
+        rows.append(row)
     rows.sort(key=lambda r: -r["total"])
     return rows
 
@@ -616,10 +643,12 @@ def _team_ticket_analysis_data(request, model):
     cutoff = _months_cutoff(months)
     developer_ids = request.GET.getlist("developer")
     countries = request.GET.getlist("country")
+    query = request.GET.get("q", "").strip()
 
     employee_ids_with_data = model.objects.values_list("employee_id", flat=True).distinct()
     filter_employees = list(Employee.objects.filter(pk__in=employee_ids_with_data).order_by("name"))
     filter_countries = sorted({e.country or "Unspecified" for e in filter_employees})
+    name_to_pk = {e.name: e.pk for e in filter_employees}
 
     allowed_employee_pks = {
         e.pk
@@ -628,11 +657,14 @@ def _team_ticket_analysis_data(request, model):
         and (not countries or (e.country or "Unspecified") in countries)
     }
 
-    all_items = model.objects.filter(employee_id__in=allowed_employee_pks).select_related("employee")
+    related_select = ["employee"] + (["related_work_item"] if hasattr(model, "related_work_item") else [])
+    all_items = model.objects.filter(employee_id__in=allowed_employee_pks).select_related(*related_select)
     items = []
     for item in all_items:
         d = item.closed_date or item.created_date
         if cutoff and (not d or d < cutoff):
+            continue
+        if query and query.lower() not in f"{item.title} {item.description}".lower():
             continue
         items.append(item)
 
@@ -640,6 +672,8 @@ def _team_ticket_analysis_data(request, model):
     by_country_count = Counter()
     by_type = Counter()
     by_component_count = Counter()
+    by_priority_count = Counter()
+    by_tag_count = Counter()
     monthly = Counter()
     dev_month_counts = {}
     country_month_counts = {}
@@ -647,6 +681,10 @@ def _team_ticket_analysis_data(request, model):
     rows_by_employee = {}
     countries_present = set()
     total_points = 0
+    resolution_days = []
+    open_buckets = Counter()
+    open_no_date = 0
+    today = timezone.localdate()
 
     for item in items:
         employee = item.employee
@@ -658,6 +696,9 @@ def _team_ticket_analysis_data(request, model):
         by_country_count[emp_country] += 1
         by_type[item.work_item_type or "Unspecified"] += 1
         by_component_count[component] += 1
+        by_priority_count[f"Priority {item.priority}" if item.priority else "Unspecified"] += 1
+        for tag in _split_tags(item.tags):
+            by_tag_count[tag] += 1
         component_country_counts.setdefault(component, Counter())[emp_country] += 1
 
         points = item.story_points or 0
@@ -666,6 +707,23 @@ def _team_ticket_analysis_data(request, model):
         row = rows_by_employee.setdefault(employee.pk, {"employee": employee, "item_count": 0, "points": 0})
         row["item_count"] += 1
         row["points"] += points
+
+        if item.closed_date and item.created_date:
+            resolution_days.append((item.closed_date - item.created_date).days)
+        if not item.closed_date:
+            basis = item.created_date
+            if basis:
+                age = (today - basis).days
+                if age <= 7:
+                    open_buckets[AGING_BUCKET_LABELS[0]] += 1
+                elif age <= 14:
+                    open_buckets[AGING_BUCKET_LABELS[1]] += 1
+                elif age <= 30:
+                    open_buckets[AGING_BUCKET_LABELS[2]] += 1
+                else:
+                    open_buckets[AGING_BUCKET_LABELS[3]] += 1
+            else:
+                open_no_date += 1
 
         d = item.closed_date or item.created_date
         if d:
@@ -677,15 +735,54 @@ def _team_ticket_analysis_data(request, model):
     months_columns = sorted(monthly.keys())
     countries_columns = sorted(countries_present)
     max_monthly = max(monthly.values(), default=0)
+    monthly_sorted = sorted(monthly.items())
     monthly_series = [
         {"month": month, "count": count, "pct": round(count / max_monthly * 100) if max_monthly else 0}
-        for month, count in sorted(monthly.items())
+        for month, count in monthly_sorted
     ]
+
+    trend = None
+    if len(monthly_sorted) >= 2:
+        prev_month, prev_count = monthly_sorted[-2]
+        last_month, last_count = monthly_sorted[-1]
+        if prev_count:
+            pct = round((last_count - prev_count) / prev_count * 100)
+        else:
+            pct = 100 if last_count else 0
+        trend = {
+            "prev_month": prev_month,
+            "prev_count": prev_count,
+            "last_month": last_month,
+            "last_count": last_count,
+            "pct": pct,
+            "direction": "up" if last_count > prev_count else ("down" if last_count < prev_count else "flat"),
+        }
+
+    max_bucket = max(open_buckets.values(), default=0)
+    aging = {
+        "avg_resolution_days": round(sum(resolution_days) / len(resolution_days), 1) if resolution_days else None,
+        "resolved_count": len(resolution_days),
+        "open_count": sum(open_buckets.values()) + open_no_date,
+        "open_no_date": open_no_date,
+        "open_buckets": [
+            {
+                "label": label,
+                "count": open_buckets.get(label, 0),
+                "pct": round(open_buckets.get(label, 0) / max_bucket * 100) if max_bucket else 0,
+            }
+            for label in AGING_BUCKET_LABELS
+        ],
+    }
 
     summary_rows = sorted(rows_by_employee.values(), key=lambda r: -r["item_count"])
 
     story_rows = sorted(items, key=lambda i: i.closed_date or i.created_date or date.min, reverse=True)
     story_row_limit = 150
+
+    dev_link = lambda name: _filter_link(request, "developer", name_to_pk[name]) if name in name_to_pk else None
+    country_link = lambda name: _filter_link(request, "country", name)
+    developer_hrefs = {name: _filter_link(request, "developer", pk) for name, pk in name_to_pk.items()}
+    country_hrefs = {c: _filter_link(request, "country", c) for c in countries_present}
 
     return {
         "items": items,
@@ -694,17 +791,21 @@ def _team_ticket_analysis_data(request, model):
             "total_items": len(items),
             "total_points": total_points,
             "employee_count": len(summary_rows),
+            "trend": trend,
         },
+        "aging": aging,
         "charts": {
-            "by_developer": _bar_series(by_developer_count),
-            "by_country": _bar_series(by_country_count),
+            "by_developer": _bar_series(by_developer_count, link_for=dev_link),
+            "by_country": _bar_series(by_country_count, link_for=country_link),
             "by_type": by_type.most_common(),
             "by_component": _bar_series(by_component_count),
+            "by_priority": _bar_series(by_priority_count),
+            "by_tag": _bar_series(by_tag_count)[:12],
             "monthly_series": monthly_series,
         },
         "months_columns": months_columns,
-        "developer_matrix": _cross_matrix(dev_month_counts, months_columns),
-        "country_matrix": _cross_matrix(country_month_counts, months_columns),
+        "developer_matrix": _cross_matrix(dev_month_counts, months_columns, hrefs=developer_hrefs),
+        "country_matrix": _cross_matrix(country_month_counts, months_columns, hrefs=country_hrefs),
         "countries_columns": countries_columns,
         "component_matrix": _cross_matrix(component_country_counts, countries_columns),
         "story_rows": [
@@ -715,7 +816,10 @@ def _team_ticket_analysis_data(request, model):
                 "country": i.employee.country or "Unspecified",
                 "type": i.work_item_type,
                 "component": i.area_path,
+                "priority": i.priority,
+                "tags": i.tags,
                 "url": i.url,
+                "related_work_item": getattr(i, "related_work_item", None),
             }
             for i in story_rows[:story_row_limit]
         ],
@@ -728,7 +832,8 @@ def _team_ticket_analysis_data(request, model):
             "selected_developer_ids": developer_ids,
             "filter_countries": filter_countries,
             "selected_countries": countries,
-            "active": bool(months or developer_ids or countries),
+            "query": query,
+            "active": bool(months or developer_ids or countries or query),
         },
     }
 
@@ -758,7 +863,17 @@ def _build_ticket_analysis_prompt(data, record_noun="user stories/tickets", conf
     country_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_country"])
     type_lines = "\n".join(f"- {t}: {c}" for t, c in charts["by_type"])
     component_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_component"])
+    priority_lines = "\n".join(f"- {p['label']}: {p['count']}" for p in charts["by_priority"]) or "- (none set)"
+    tag_lines = "\n".join(f"- {t['label']}: {t['count']}" for t in charts["by_tag"]) or "- (none set)"
     monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in charts["monthly_series"])
+
+    aging = data.get("aging") or {}
+    aging_line = ""
+    if aging.get("avg_resolution_days") is not None:
+        aging_line = (
+            f"\nAverage resolution time: {aging['avg_resolution_days']} day(s) across "
+            f"{aging['resolved_count']} closed item(s). Currently open: {aging['open_count']}.\n"
+        )
 
     sample_lines = []
     for i in data["items"][:60]:
@@ -783,7 +898,10 @@ def _build_ticket_analysis_prompt(data, record_noun="user stories/tickets", conf
         f"By country:\n{country_lines}\n\n"
         f"By work item type:\n{type_lines}\n\n"
         f"By Area Path (as tagged in the source system, may be incomplete or inconsistently used):\n{component_lines}\n\n"
-        f"Monthly delivery trend:\n{monthly_lines}\n\n"
+        f"By priority:\n{priority_lines}\n\n"
+        f"By tag:\n{tag_lines}\n\n"
+        f"Monthly delivery trend:\n{monthly_lines}\n"
+        f"{aging_line}\n"
         f"Tickets{more_note} — read the title and description of each to do your own analysis:\n{sample_titles}\n\n"
         "Based on reading the actual ticket titles and descriptions above (not just the reference "
         "counts), please: (1) classify each ticket, or group of similar tickets, as primarily "
@@ -816,9 +934,55 @@ def _render_ticket_analysis(request, model, template, record_noun):
             "story_row_total": data["story_row_total"],
             "story_row_limit": data["story_row_limit"],
             "filters": data["filters"],
+            "aging": data["aging"],
             "prompt": _build_ticket_analysis_prompt(data, record_noun=record_noun),
         },
     )
+
+
+def _export_tickets_excel(request, model, filename_prefix):
+    data = _team_ticket_analysis_data(request, model)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = filename_prefix[:31]
+    ws.append([
+        "Owner", "Title", "Description", "Type", "State", "Component", "Country",
+        "Priority", "Tags", "Points/Effort", "Created", "Closed", "URL", "Linked Change",
+    ])
+    for item in data["items"]:
+        related = getattr(item, "related_work_item", None)
+        ws.append([
+            item.employee.name,
+            item.title,
+            item.description,
+            item.work_item_type,
+            item.state,
+            item.area_path,
+            item.employee.country or "Unspecified",
+            item.priority,
+            item.tags,
+            float(item.story_points) if item.story_points is not None else None,
+            item.created_date.isoformat() if item.created_date else "",
+            item.closed_date.isoformat() if item.closed_date else "",
+            item.url,
+            related.title if related else "",
+        ])
+    buf = io.BytesIO()
+    wb.save(buf)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename_prefix}.xlsx"'
+    return response
+
+
+def analysis_export(request):
+    return _export_tickets_excel(request, WorkItem, "change_management_export")
+
+
+def support_export(request):
+    return _export_tickets_excel(request, SupportTicket, "support_tickets_export")
 
 
 def analysis_home(request):

@@ -248,7 +248,8 @@ class SupportTicketAdmin(admin.ModelAdmin):
         "state",
         "priority",
         "closed_date",
+        "related_work_item",
     )
     list_filter = ("source", "work_item_type", "state", "priority")
     search_fields = ("title", "external_id", "employee__name", "assigned_to_raw", "tags")
-    autocomplete_fields = ("employee",)
+    autocomplete_fields = ("employee", "related_work_item")

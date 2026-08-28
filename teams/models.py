@@ -213,6 +213,14 @@ class SupportTicket(models.Model):
     closed_date = models.DateField(null=True, blank=True)
     url = models.URLField(blank=True)
     imported_at = models.DateTimeField(auto_now_add=True)
+    related_work_item = models.ForeignKey(
+        WorkItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="related_tickets",
+        help_text="Optional: the change/user story this ticket led to, if any. Set manually — not auto-matched.",
+    )
 
     class Meta:
         ordering = ["-closed_date", "-created_date"]

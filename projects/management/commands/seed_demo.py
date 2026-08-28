@@ -332,11 +332,13 @@ class Command(BaseCommand):
             "eSuvidha-Digital\\Grievance",
             "eSuvidha-Digital\\Integration",
         ]
+        sample_tags = ["backend", "customer-impact", "regression", "performance", "security", "ui"]
         for emp_name in ["Divya Menon", "Sanjay Iyer"]:
             employee = employees[emp_name]
             for i in range(10):
                 months_ago = 9 - i
                 closed = today.replace(day=1) - timedelta(days=months_ago * 30 - random.randint(0, 20))
+                is_open = i == 9
                 WorkItem.objects.get_or_create(
                     employee=employee,
                     external_id=f"{1000 + i}",
@@ -345,12 +347,14 @@ class Command(BaseCommand):
                         "title": sample_titles[i],
                         "description": sample_descriptions[i],
                         "work_item_type": random.choice(work_item_types),
-                        "state": random.choice(states),
+                        "state": "Active" if is_open else random.choice(states),
                         "story_points": random.choice([1, 2, 3, 5, 8]),
                         "project_label": "eSuvidha-Digital",
                         "area_path": sample_areas[i],
+                        "priority": random.choice([1, 2, 3, 4]),
+                        "tags": ", ".join(random.sample(sample_tags, k=random.choice([1, 2]))),
                         "created_date": closed - timedelta(days=random.randint(3, 14)),
-                        "closed_date": closed,
+                        "closed_date": None if is_open else closed,
                     },
                 )
 
@@ -393,11 +397,15 @@ class Command(BaseCommand):
             "eSuvidha-Digital\\Integration",
             "eSuvidha-Digital\\Reporting",
         ]
+        support_tags = ["taxpayer-facing", "peak-hours", "data-quality", "third-party", "auth", "reporting"]
+        open_ages = {7: 4, 8: 12, 9: 35}
         for emp_name in ["Divya Menon", "Sanjay Iyer"]:
             employee = employees[emp_name]
             for i in range(10):
                 months_ago = 9 - i
                 closed = today.replace(day=1) - timedelta(days=months_ago * 30 - random.randint(0, 20))
+                is_open = i in open_ages
+                created = today - timedelta(days=open_ages[i]) if is_open else closed - timedelta(days=random.randint(1, 5))
                 SupportTicket.objects.get_or_create(
                     employee=employee,
                     external_id=f"{2000 + i}",
@@ -406,12 +414,14 @@ class Command(BaseCommand):
                         "title": support_titles[i],
                         "description": support_descriptions[i],
                         "work_item_type": random.choice(ticket_types),
-                        "state": random.choice(ticket_states),
+                        "state": "In Progress" if is_open else random.choice(ticket_states),
                         "story_points": random.choice([1, 2, 3, 5]),
                         "project_label": "eSuvidha-Digital",
                         "area_path": support_components[i],
-                        "created_date": closed - timedelta(days=random.randint(1, 5)),
-                        "closed_date": closed,
+                        "priority": random.choice([1, 2, 3, 4]),
+                        "tags": ", ".join(random.sample(support_tags, k=random.choice([1, 2]))),
+                        "created_date": created,
+                        "closed_date": None if is_open else closed,
                     },
                 )
 
