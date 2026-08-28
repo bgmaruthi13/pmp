@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.name }} · Work{% endblock %}
+{% block content %}
+    <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
+    <h1 style="margin-bottom:0.1rem;">{{ employee.name }}</h1>
+    <div style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">{{ employee.roles_display|default:"Role unspecified" }} &middot; Work</div>
+
+    <div class="source-toggle">
+        <a href="?source=azure_devops" class="{% if source == 'azure_devops' %}active{% endif %}">Azure DevOps</a>
+        <a href="?source=excel" class="{% if source == 'excel' %}active{% endif %}">Import File</a>
+    </div>
+
+    {% if source == 'azure_devops' %}
+        {% if not pat_configured %}
+            <p class="pill danger">No shared PAT configured yet — an admin can set one under Admin &rsaquo; Teams &rsaquo; Azure DevOps settings.</p>
+        {% endif %}
+        {% if ado_error %}
+            <p class="pill danger">{{ ado_error }}</p>
+        {% endif %}
+        <form method="post" style="max-width:640px;margin-bottom:1.5rem;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ado_sync">
+            <p>
+                <label for="query_url">Shared query URL for this person</label>
+                <input type="url" name="query_url" id="query_url" value="{{ employee.azure_devops_query_url }}"
+                       placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/">
+            </p>
+            <button class="btn" type="submit">Save &amp; Fetch</button>
+        </form>
+    {% else %}
+        <p style="max-width:640px;">
+            Use this when Azure DevOps isn't available: upload an .xlsx or .csv export of this
+            person's tickets and map its columns once.
+        </p>
+        <p style="margin-bottom:1.5rem;"><a class="btn" href="{% url 'employee-import-upload' employee.pk %}">Upload File</a></p>
+    {% endif %}
+
+    <div class="stat-row">
+        <div class="stat-tile"><div class="stat-value">{{ total_items }}</div><div class="stat-label">Work items tracked</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ total_points|default:"0" }}</div><div class="stat-label">Story points</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ monthly_series|length }}</div><div class="stat-label">Active months</div></div>
+    </div>
+
+    {% if items %}
+        <h3 style="margin-bottom:0.2rem;">Monthly Delivery</h3>
+        <div class="bar-chart">
+            {% for m in monthly_series %}
+                <div class="bar-col">
+                    <div class="bar-count">{{ m.count }}</div>
+                    <div class="bar" style="height: {{ m.pct }}%;" title="{{ m.month }}: {{ m.count }}"></div>
+                    <div class="bar-label">{{ m.month }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1rem;">
+            <div>
+                <h3 style="margin-bottom:0.4rem;">By Type</h3>
+                <div class="table-wrap"><table>
+                    <tbody>
+                        {% for type_name, count in type_counts %}
+                            <tr><td>{{ type_name }}</td><td style="text-align:right;width:60px;">{{ count }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            </div>
+            <div>
+                <h3 style="margin-bottom:0.4rem;">By State</h3>
+                <div class="table-wrap"><table>
+                    <tbody>
+                        {% for state_name, count in state_counts %}
+                            <tr><td>{{ state_name }}</td><td style="text-align:right;width:60px;">{{ count }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:1.25rem;margin-bottom:0.4rem;">Tickets{% if total_items > items|length %} (most recent {{ items|length }} of {{ total_items }}){% endif %}</h3>
+        <div class="table-wrap" style="max-height:320px;overflow-y:auto;">
+            <table>
+                <thead><tr><th>Title</th><th>Type</th><th>State</th><th>Points</th><th>Closed</th></tr></thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td>{% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</td>
+                            <td>{{ item.work_item_type|default:"—" }}</td>
+                            <td>{{ item.state|default:"—" }}</td>
+                            <td>{{ item.story_points|default:"—" }}</td>
+                            <td>{{ item.closed_date|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color:var(--muted);">
+            No work items on file yet for {{ employee.name }} from
+            {% if source == 'azure_devops' %}Azure DevOps{% else %}an imported file{% endif %}.
+        </p>
+    {% endif %}
+
+    <h3 style="margin-top:1.25rem;margin-bottom:0.4rem;">Craft a Summary Prompt</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:0;">Copy this into an LLM chat to get a written effort analysis and summary of this person's work.</p>
+    <textarea id="analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
+    <p>
+        <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('analysis-prompt').value)">Copy Prompt</button>
+    </p>
+{% endblock %}

@@ -113,22 +113,18 @@
         }
         footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem; }
 
-        .work-links { margin-top: 0.3rem; font-size: 0.76rem; white-space: nowrap; }
-        .work-links a { text-decoration: none; }
-        .work-links a:hover { text-decoration: underline; }
-        .work-links .sep { color: var(--border); margin: 0 0.35rem; }
-
-        dialog#work-modal {
-            width: min(880px, 92vw); max-height: 85vh; border: none; border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg); padding: 0; overflow: hidden;
+        .source-toggle { display: flex; gap: 0.4rem; margin-bottom: 1rem; }
+        .source-toggle a {
+            padding: 0.45rem 1rem; border-radius: 999px; text-decoration: none; font-size: 0.88rem;
+            font-weight: 600; background: #e8eef7; color: var(--navy);
         }
-        dialog#work-modal::backdrop { background: rgba(8, 44, 80, 0.55); }
-        dialog#work-modal .modal-inner { padding: 1.5rem; overflow-y: auto; max-height: 85vh; }
-        dialog#work-modal .modal-close {
-            position: absolute; top: 0.9rem; right: 1.1rem; background: none; border: none;
-            font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--muted); padding: 0.2rem 0.4rem;
+        .source-toggle a.active { background: var(--navy); color: #fff; }
+        .checkbox-list { display: flex; flex-direction: column; gap: 0.5rem; max-width: 480px; }
+        .checkbox-list label {
+            display: flex; align-items: center; gap: 0.6rem; font-weight: 500; color: #1a1a1a;
+            background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.55rem 0.8rem;
         }
-        dialog#work-modal .modal-close:hover { color: var(--navy-dark); }
+        .checkbox-list input[type="checkbox"] { width: auto; }
 
         .bar-chart { display: flex; align-items: flex-end; gap: 0.6rem; height: 140px; padding: 0.5rem 0; }
         .bar-chart .bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; }
@@ -181,24 +177,5 @@
         {% block content %}{% endblock %}
     </main>
     <footer>eSuvidha Ops Portal — internal demo, styled after e-Filing-style government portals. Not affiliated with any government department.</footer>
-
-    <dialog id="work-modal">
-        <div class="modal-inner" style="position:relative;">
-            <button type="button" class="modal-close" onclick="document.getElementById('work-modal').close()" aria-label="Close">&times;</button>
-            <div id="work-modal-content">Loading&hellip;</div>
-        </div>
-    </dialog>
-    <script>
-        function openWorkAnalysis(employeeId) {
-            var dialog = document.getElementById('work-modal');
-            var content = document.getElementById('work-modal-content');
-            content.innerHTML = 'Loading&hellip;';
-            dialog.showModal();
-            fetch('/' + employeeId + '/work/analysis/')
-                .then(function (r) { return r.text(); })
-                .then(function (html) { content.innerHTML = html; })
-                .catch(function () { content.innerHTML = '<p>Could not load this analysis.</p>'; });
-        }
-    </script>
 </body>
 </html>

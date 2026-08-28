@@ -120,6 +120,13 @@ class Command(BaseCommand):
                 },
             )
 
+        # -- Employee <-> Project associations (editable from the Team page) --
+        for employee in employees.values():
+            project_ids = set(Task.objects.filter(assignee=employee).values_list("project_id", flat=True))
+            project_ids.update(Project.objects.filter(lead=employee).values_list("id", flat=True))
+            if project_ids:
+                employee.projects.set(project_ids)
+
         # -- Applications ------------------------------------------------
         applications_data = [
             ("e-Filing Core Engine 4.0", "3-high", "eSuvidha-Digital", "in_house", "business_capabilities", "Priya Raghavan"),
@@ -200,7 +207,7 @@ class Command(BaseCommand):
                     employee=employee,
                     external_id=f"{1000 + i}",
                     defaults={
-                        "source": WorkItem.Source.MANUAL,
+                        "source": WorkItem.Source.EXCEL,
                         "title": sample_titles[i],
                         "work_item_type": random.choice(work_item_types),
                         "state": random.choice(states),

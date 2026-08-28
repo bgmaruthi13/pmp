@@ -7,7 +7,11 @@ from decimal import Decimal, InvalidOperation
 import openpyxl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
 from .models import AzureDevOpsSettings, Employee, WorkItem
@@ -31,43 +35,53 @@ WORK_IMPORT_FIELDS = [
 def team_list(request):
     employees = (
         Employee.objects.select_related("manager")
-        .prefetch_related("tickets_received__project", "projects_led", "roles")
+        .prefetch_related("tickets_received", "roles", "projects")
         .order_by("name")
     )
-    rows = []
-    for employee in employees:
-        tickets = list(employee.tickets_received.all())
-        projects = {t.project.name for t in tickets}
-        projects.update(p.name for p in employee.projects_led.all())
-        rows.append(
-            {
-                "employee": employee,
-                "projects": sorted(projects),
-                "ticket_count": len(tickets),
-            }
-        )
+    rows = [
+        {
+            "employee": employee,
+            "projects": sorted(employee.projects.all(), key=lambda p: p.name),
+            "ticket_count": len(employee.tickets_received.all()),
+        }
+        for employee in employees
+    ]
     return render(request, "teams/team_list.html", {"rows": rows})
 
 
 def employee_detail(request, pk):
     employee = get_object_or_404(
-        Employee.objects.select_related("manager").prefetch_related("reports", "projects_led", "roles"),
+        Employee.objects.select_related("manager").prefetch_related("reports", "roles", "projects"),
         pk=pk,
     )
     tickets = employee.tickets_received.select_related("project").order_by("-created_at")
-    projects = {t.project for t in tickets}
-    projects.update(employee.projects_led.all())
     return render(
         request,
         "teams/employee_detail.html",
-        {"employee": employee, "tickets": tickets, "projects": sorted(projects, key=lambda p: p.name)},
+        {"employee": employee, "tickets": tickets, "projects": employee.projects.all()},
     )
 
 
-def employee_analysis_fragment(request, pk):
-    employee = get_object_or_404(Employee.objects.prefetch_related("roles"), pk=pk)
-    items = list(employee.work_items.all())
+@login_required
+def employee_projects_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    all_projects = Project.objects.order_by("name")
 
+    if request.method == "POST":
+        selected_ids = request.POST.getlist("projects")
+        employee.projects.set(all_projects.filter(pk__in=selected_ids))
+        messages.success(request, f"Updated projects for {employee.name}.")
+        return redirect("team-org")
+
+    current_ids = set(employee.projects.values_list("pk", flat=True))
+    return render(
+        request,
+        "teams/projects_edit.html",
+        {"employee": employee, "all_projects": all_projects, "current_ids": current_ids},
+    )
+
+
+def _analysis_for(employee, items):
     monthly_counts = Counter()
     for item in items:
         d = item.closed_date or item.created_date
@@ -83,8 +97,7 @@ def employee_analysis_fragment(request, pk):
     state_counts = Counter(i.state or "Unspecified" for i in items).most_common()
     total_points = sum((i.story_points or 0) for i in items)
 
-    context = {
-        "employee": employee,
+    return {
         "items": items[:50],
         "total_items": len(items),
         "monthly_series": monthly_series,
@@ -93,7 +106,6 @@ def employee_analysis_fragment(request, pk):
         "total_points": total_points,
         "prompt": _build_analysis_prompt(employee, items, monthly_series, type_counts, total_points),
     }
-    return render(request, "teams/_analysis_fragment.html", context)
 
 
 def _build_analysis_prompt(employee, items, monthly_series, type_counts, total_points):
@@ -122,46 +134,57 @@ def _build_analysis_prompt(employee, items, monthly_series, type_counts, total_p
     )
 
 
-@login_required
-def employee_ado_sync(request, pk):
-    employee = get_object_or_404(Employee, pk=pk)
+def employee_work(request, pk):
+    employee = get_object_or_404(Employee.objects.prefetch_related("roles"), pk=pk)
     settings_obj = AzureDevOpsSettings.load()
-    error = None
+    ado_error = None
+
+    default_source = (
+        "azure_devops" if (settings_obj.personal_access_token and employee.azure_devops_query_url) else "excel"
+    )
+    source = request.GET.get("source") or default_source
+    if source not in ("azure_devops", "excel"):
+        source = default_source
 
     if request.method == "POST":
-        query_url = request.POST.get("query_url", "").strip()
-        employee.azure_devops_query_url = query_url
-        employee.save(update_fields=["azure_devops_query_url"])
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
 
-        if not query_url:
-            error = "Add a query URL first."
-        elif not settings_obj.personal_access_token:
-            error = "No shared PAT is configured. Ask an admin to set one under Admin > Teams > Azure DevOps settings."
-        else:
-            try:
-                fetched = fetch_work_items(query_url, settings_obj.personal_access_token)
-            except AzureDevOpsError as exc:
-                error = str(exc)
+        if request.POST.get("action") == "ado_sync":
+            source = "azure_devops"
+            query_url = request.POST.get("query_url", "").strip()
+            employee.azure_devops_query_url = query_url
+            employee.save(update_fields=["azure_devops_query_url"])
+
+            if not query_url:
+                ado_error = "Add a query URL first."
+            elif not settings_obj.personal_access_token:
+                ado_error = "No shared PAT is configured. Ask an admin to set one under Admin > Teams > Azure DevOps settings."
             else:
-                employee.work_items.filter(source=WorkItem.Source.AZURE_DEVOPS).delete()
-                WorkItem.objects.bulk_create(
-                    WorkItem(employee=employee, source=WorkItem.Source.AZURE_DEVOPS, **item)
-                    for item in fetched
-                )
-                messages.success(request, f"Synced {len(fetched)} work item(s) from Azure DevOps.")
-                return redirect("employee-ado-sync", pk=pk)
+                try:
+                    fetched = fetch_work_items(query_url, settings_obj.personal_access_token)
+                except AzureDevOpsError as exc:
+                    ado_error = str(exc)
+                else:
+                    employee.work_items.filter(source=WorkItem.Source.AZURE_DEVOPS).delete()
+                    WorkItem.objects.bulk_create(
+                        WorkItem(employee=employee, source=WorkItem.Source.AZURE_DEVOPS, **item)
+                        for item in fetched
+                    )
+                    messages.success(request, f"Synced {len(fetched)} work item(s) from Azure DevOps.")
+                    return redirect(f"{reverse('employee-work', args=[pk])}?source=azure_devops")
 
-    items = employee.work_items.filter(source=WorkItem.Source.AZURE_DEVOPS)
-    return render(
-        request,
-        "teams/ado_sync.html",
-        {
-            "employee": employee,
-            "items": items,
-            "error": error,
-            "pat_configured": bool(settings_obj.personal_access_token),
-        },
-    )
+    source_value = WorkItem.Source.AZURE_DEVOPS if source == "azure_devops" else WorkItem.Source.EXCEL
+    items = list(employee.work_items.filter(source=source_value))
+
+    context = {
+        "employee": employee,
+        "source": source,
+        "ado_error": ado_error,
+        "pat_configured": bool(settings_obj.personal_access_token),
+        **_analysis_for(employee, items),
+    }
+    return render(request, "teams/work.html", context)
 
 
 def _read_tabular_file(upload):
@@ -302,7 +325,7 @@ def employee_import_map(request, pk):
         del request.session["work_import_headers"]
         del request.session["work_import_rows"]
         messages.success(request, f"Imported {created} work item(s) for {employee.name}.")
-        return redirect("team-org")
+        return redirect(f"{reverse('employee-work', args=[pk])}?source=excel")
 
     mapping = {f["key"]: _guess_work_column(headers, f["key"]) for f in WORK_IMPORT_FIELDS}
     return render(

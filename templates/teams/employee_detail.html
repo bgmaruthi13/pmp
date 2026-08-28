@@ -35,11 +35,14 @@
                     {% for project in projects %}
                         <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>{% if not forloop.last %}, {% endif %}
                     {% empty %}—{% endfor %}
+                    <div><small><a href="{% url 'employee-projects-edit' employee.pk %}">Edit projects</a></small></div>
                 </td>
             </tr>
         </tbody>
     </table>
     </div>
+
+    <p><a class="btn" href="{% url 'employee-work' employee.pk %}">View Work &amp; Analysis</a></p>
 
     <h3>Assigned tickets</h3>
     <div class="table-wrap">

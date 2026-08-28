@@ -27,6 +27,9 @@ class Employee(models.Model):
     name = models.CharField(max_length=150)
     email = models.EmailField(blank=True)
     roles = models.ManyToManyField(Role, related_name="employees", blank=True)
+    projects = models.ManyToManyField(
+        "projects.Project", related_name="team_members", blank=True
+    )
     manager = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="reports"
     )
