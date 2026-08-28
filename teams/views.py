@@ -77,6 +77,49 @@ def team_list(request):
     return render(request, "teams/team_list.html", {"rows": rows})
 
 
+def team_headcount(request):
+    """Manager -> project role -> employee headcount breakdown, filterable by
+    project — a pivot-table-style view of who reports to whom, grouped by role,
+    similar to a PivotTable export of the team roster."""
+    project_ids = request.GET.getlist("project")
+    all_projects = Project.objects.order_by("name")
+
+    employees = Employee.objects.select_related("manager").prefetch_related("roles", "projects")
+    if project_ids:
+        employees = employees.filter(projects__pk__in=project_ids).distinct()
+
+    managers = {}
+    for employee in employees:
+        manager = employee.manager
+        key = manager.pk if manager else 0
+        group = managers.setdefault(key, {"manager": manager, "roles": {}, "total": 0})
+        group["total"] += 1
+        roles = list(employee.roles.all())
+        role_names = [r.name for r in roles] or ["Unspecified"]
+        for role_name in role_names:
+            group["roles"].setdefault(role_name, []).append(employee)
+
+    groups = []
+    for group in managers.values():
+        role_rows = [
+            {"role": role_name, "employees": sorted(emps, key=lambda e: e.name), "count": len(emps)}
+            for role_name, emps in sorted(group["roles"].items())
+        ]
+        groups.append({"manager": group["manager"], "roles": role_rows, "total": group["total"]})
+    groups.sort(key=lambda g: (g["manager"] is None, g["manager"].name if g["manager"] else ""))
+
+    return render(
+        request,
+        "teams/headcount.html",
+        {
+            "groups": groups,
+            "all_projects": all_projects,
+            "selected_project_ids": project_ids,
+            "grand_total": sum(g["total"] for g in groups),
+        },
+    )
+
+
 def _blended_efficiency(employee):
     values = [v for v in [employee.rtb_efficiency, employee.gsc_efficiency, employee.ai_efficiency] if v is not None]
     if not values:
