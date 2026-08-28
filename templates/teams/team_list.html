@@ -4,8 +4,8 @@
 {% block content %}
     <h1>Team</h1>
     <p><small>All team members. Click a name for full details.</small></p>
-    {% if user.is_authenticated %}
-        <p><a class="btn" href="{% url 'team-import' %}">Import from Excel</a></p>
+    {% if user.is_staff %}
+        <p><a class="btn" href="{% url 'admin:teams_employee_import' %}">Import from Excel (Admin)</a></p>
     {% endif %}
     <div class="table-wrap">
     <table>

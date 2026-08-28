@@ -1,0 +1,66 @@
+{% extends "admin/base_site.html" %}
+{% load team_extras %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='teams' %}">Teams</a>
+    &rsaquo; <a href="{% url 'admin:teams_employee_changelist' %}">Employees</a>
+    &rsaquo; <a href="{% url 'admin:teams_employee_import' %}">Import from Excel</a>
+    &rsaquo; Map Columns
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <p>Match each Team field to a column from your file. Name and Role are required;
+       Email and Manager are optional. Manager is matched by name against other rows
+       in this file or existing team members.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <fieldset class="module aligned">
+            {% for field in fields %}
+                <div class="form-row">
+                    <div>
+                        <label for="map_{{ field.key }}"{% if field.required %} class="required"{% endif %}>{{ field.label }}</label>
+                        <select name="map_{{ field.key }}" id="map_{{ field.key }}">
+                            <option value="">&mdash; Not mapped &mdash;</option>
+                            {% with current=mapping|get_item:field.key %}
+                                {% for header in headers %}
+                                    <option value="{{ header }}" {% if header == current %}selected{% endif %}>{{ header }}</option>
+                                {% endfor %}
+                            {% endwith %}
+                        </select>
+                    </div>
+                </div>
+            {% endfor %}
+        </fieldset>
+        <div class="submit-row">
+            <input type="submit" value="Import Team" class="default">
+        </div>
+    </form>
+
+    <h2>Preview (first {{ rows|length }} rows from your file)</h2>
+    <div style="overflow-x:auto;">
+        <table style="border-collapse:collapse;width:100%;">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                        <th style="text-align:left;border:1px solid #ccc;padding:6px 10px;background:#f6f6f6;">{{ header|default:"(blank)" }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                            <td style="border:1px solid #ccc;padding:6px 10px;">{{ cell|default:"—" }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

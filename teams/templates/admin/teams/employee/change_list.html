@@ -1,0 +1,6 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+    <li><a href="{% url 'admin:teams_employee_import' %}" class="addlink">Import from Excel</a></li>
+    {{ block.super }}
+{% endblock %}
