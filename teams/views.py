@@ -632,28 +632,13 @@ def _build_team_analysis_prompt(charts, total_items, total_points):
 
 def analysis_home(request):
     settings_obj = AzureDevOpsSettings.load()
-    ado_error = None
 
-    if request.method == "POST":
-        if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path())
-
-        result, error = run_team_ado_sync(settings_obj)
-        if error:
-            ado_error = error
-        else:
-            _flash_import_result(request, result)
-            return redirect("team-analysis")
-
-    else:
-        due = (
-            settings_obj.last_synced_at is None
-            or timezone.now() - settings_obj.last_synced_at
-            >= timedelta(hours=settings_obj.auto_sync_interval_hours)
-        )
-        if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
-            run_team_ado_sync(settings_obj)
-            settings_obj.refresh_from_db()
+    due = (
+        settings_obj.last_synced_at is None
+        or timezone.now() - settings_obj.last_synced_at >= timedelta(hours=settings_obj.auto_sync_interval_hours)
+    )
+    if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
+        run_team_ado_sync(settings_obj)
 
     summary = _analysis_summary()
     charts = _team_analysis_charts()
@@ -661,9 +646,6 @@ def analysis_home(request):
         request,
         "teams/analysis.html",
         {
-            "settings_obj": settings_obj,
-            "ado_error": ado_error,
-            "pat_configured": bool(settings_obj.personal_access_token),
             "summary": summary,
             "charts": charts,
             "prompt": _build_team_analysis_prompt(charts, summary["total_items"], summary["total_points"]),

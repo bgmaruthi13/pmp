@@ -1,11 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Admin Settings · eSuvidha Ops Portal{% endblock %}
+{% block title %}Configuration · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    <h1 style="margin-top:0;">Admin Settings</h1>
+    <div class="tabs">
+        <a href="{% url 'team-org' %}">Directory</a>
+        <a href="{% url 'team-efficiency' %}">Efficiency</a>
+        <a href="{% url 'team-analysis' %}">Analysis</a>
+        <a href="{% url 'admin-settings' %}" class="active">Configuration</a>
+    </div>
     <p style="color:var(--muted);max-width:700px;">
-        Every Azure DevOps configuration used by the Analysis tab lives here in one place &mdash;
-        organization, the shared access token, the team-wide query, and the automatic sync
-        schedule.
+        Everything needed to bring user story data into the Analysis tab lives here &mdash; the
+        Azure DevOps connection, the automatic sync schedule, and Excel/CSV import.
     </p>
 
     {% if settings_obj.last_synced_at %}
@@ -22,72 +26,83 @@
         <p style="color:var(--muted);">Never synced yet.</p>
     {% endif %}
 
-    <form method="post" style="max-width:640px;">
-        {% csrf_token %}
+    <div class="column" style="max-width:640px;">
+        <form method="post">
+            {% csrf_token %}
 
-        <h3 style="margin-bottom:0.4rem;">Azure DevOps</h3>
-        <p>
-            <label for="organization_url">Organization URL</label>
-            <input
-                type="url" name="organization_url" id="organization_url"
-                value="{{ settings_obj.organization_url }}" placeholder="https://dev.azure.com/your-organization"
-            >
-        </p>
-        <p>
-            <label for="personal_access_token">Shared Personal Access Token (PAT)</label>
-            <input
-                type="password" name="personal_access_token" id="personal_access_token"
-                value="{{ settings_obj.personal_access_token }}" autocomplete="new-password"
-            >
-        </p>
-        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
-            Used for every Azure DevOps query &mdash; each person's own sync and the team-wide
-            Analysis sync.
-        </p>
-        <p>
-            <label for="team_query_url">Team-wide user stories query URL</label>
-            <input
-                type="url" name="team_query_url" id="team_query_url"
-                value="{{ settings_obj.team_query_url }}"
-                placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
-            >
-        </p>
-        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
-            Used by the Analysis tab to pull user stories for the whole team, at once, matched to
-            people by assignee.
-        </p>
+            <h3 style="margin-top:0;margin-bottom:0.4rem;">Azure DevOps</h3>
+            <p>
+                <label for="organization_url">Organization URL</label>
+                <input
+                    type="url" name="organization_url" id="organization_url"
+                    value="{{ settings_obj.organization_url }}" placeholder="https://dev.azure.com/your-organization"
+                >
+            </p>
+            <p>
+                <label for="personal_access_token">Shared Personal Access Token (PAT)</label>
+                <input
+                    type="password" name="personal_access_token" id="personal_access_token"
+                    value="{{ settings_obj.personal_access_token }}" autocomplete="new-password"
+                >
+            </p>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+                Used for every Azure DevOps query &mdash; each person's own sync and the team-wide
+                Analysis sync.
+            </p>
+            <p>
+                <label for="team_query_url">Team-wide user stories query URL</label>
+                <input
+                    type="url" name="team_query_url" id="team_query_url"
+                    value="{{ settings_obj.team_query_url }}"
+                    placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+                >
+            </p>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+                Used to pull user stories for the whole team at once, matched to people by assignee.
+            </p>
 
-        <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Automatic Sync</h3>
-        <p>
-            <label style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
-                <input type="checkbox" name="auto_sync_enabled" style="width:auto;" {% if settings_obj.auto_sync_enabled %}checked{% endif %}>
-                Sync automatically
-            </label>
-        </p>
-        <p>
-            <label for="auto_sync_interval_hours">Every (hours)</label>
-            <input
-                type="number" min="1" name="auto_sync_interval_hours" id="auto_sync_interval_hours"
-                value="{{ settings_obj.auto_sync_interval_hours }}" style="width:120px;"
-            >
-        </p>
-        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
-            While on, visiting the Analysis tab re-syncs in the background once this interval has
-            passed &mdash; at most once per interval, however many people visit. For a schedule
-            that doesn't depend on someone visiting the page, point an external daily cron (Render
-            Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_azure_devops</code> instead.
-        </p>
+            <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Automatic Sync</h3>
+            <p>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
+                    <input type="checkbox" name="auto_sync_enabled" style="width:auto;" {% if settings_obj.auto_sync_enabled %}checked{% endif %}>
+                    Sync automatically
+                </label>
+            </p>
+            <p>
+                <label for="auto_sync_interval_hours">Every (hours)</label>
+                <input
+                    type="number" min="1" name="auto_sync_interval_hours" id="auto_sync_interval_hours"
+                    value="{{ settings_obj.auto_sync_interval_hours }}" style="width:120px;"
+                >
+            </p>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+                While on, visiting the Analysis tab re-syncs in the background once this interval has
+                passed &mdash; at most once per interval, however many people visit. For a schedule
+                that doesn't depend on someone visiting the page, point an external daily cron (Render
+                Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_azure_devops</code> instead.
+            </p>
 
-        <p style="margin-top:1.5rem;">
-            <button class="btn" type="submit">Save Settings</button>
-        </p>
-    </form>
+            <p style="margin-top:1.5rem;">
+                <button class="btn" type="submit">Save Settings</button>
+            </p>
+        </form>
 
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="sync_now">
-        <button class="btn" type="submit" style="background:#8a97a6;">Sync Now</button>
-    </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync_now">
+            <button class="btn" type="submit" style="background:#8a97a6;">Sync Now</button>
+        </form>
+    </div>
+
+    <div class="column" style="max-width:640px;margin-top:1.25rem;">
+        <h3 style="margin-top:0;margin-bottom:0.4rem;">Import from Excel / CSV</h3>
+        <p style="color:var(--muted);">
+            Use this when Azure DevOps isn't available. Upload a file with one row per user story,
+            including a column for who it's assigned to (name or email) &mdash; you'll map its
+            columns to Title, Assignee, Type, State, Story Points, and more on the next screen.
+        </p>
+        <a class="btn" href="{% url 'analysis-import-upload' %}">Upload File</a>
+    </div>
 
     <p style="margin-top:1.5rem;"><a href="{% url 'team-analysis' %}">Go to Analysis &rarr;</a></p>
 {% endblock %}
