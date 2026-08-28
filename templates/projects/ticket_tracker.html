@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load project_extras %}
 {% block title %}Ticket Tracker · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <h1>Ticket Tracker</h1>
@@ -36,7 +37,7 @@
                     <td>{{ ticket.assignee.name|default:"—" }}</td>
                     <td>{{ ticket.due_date|default:"—" }}</td>
                     <td>{% if ticket.sdm_attention %}<span class="pill sdm">Yes</span>{% endif %}</td>
-                    <td>{{ ticket.get_status_display }}</td>
+                    <td><span class="pill {{ ticket.status|status_pill }}">{{ ticket.get_status_display }}</span></td>
                     <td>{{ ticket.remarks }}</td>
                 </tr>
             {% empty %}

@@ -10,6 +10,13 @@
             --saffron: #ff9933;
             --green: #138808;
             --paper: #f5f7fa;
+            --border: #d7dee6;
+            --muted: #5b6b7c;
+            --shadow: 0 2px 10px rgba(11, 61, 110, 0.08);
+            --shadow-lg: 0 8px 24px rgba(11, 61, 110, 0.12);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
         }
         * { box-sizing: border-box; }
         body {
@@ -19,48 +26,80 @@
             color: #1a1a1a;
         }
         .tricolor { height: 4px; background: linear-gradient(90deg, var(--saffron) 33%, #fff 33%, #fff 66%, var(--green) 66%); }
-        header.masthead { background: var(--navy); color: #fff; padding: 0.9rem 1.5rem; }
-        header.masthead .brand { display: flex; align-items: center; gap: 0.6rem; }
+        header.masthead { background: var(--navy); color: #fff; padding: 0.9rem 1.5rem; box-shadow: 0 2px 12px rgba(8, 44, 80, 0.25); position: relative; z-index: 2; }
+        header.masthead .brand { display: flex; align-items: center; gap: 0.7rem; }
         header.masthead .brand .badge {
-            width: 34px; height: 34px; border-radius: 50%; background: var(--saffron);
+            width: 36px; height: 36px; border-radius: 50%; background: var(--saffron);
             display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--navy-dark);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
         header.masthead .brand-text strong { font-size: 1.1rem; display: block; }
         header.masthead .brand-text small { opacity: 0.8; }
         header.masthead a { color: #fff; }
         .topbar { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
         nav.subnav { background: var(--navy-dark); }
-        nav.subnav .inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 1.5rem; padding: 0.5rem 1.5rem; flex-wrap: wrap; }
-        nav.subnav a { color: #e8eef7; text-decoration: none; font-size: 0.92rem; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
-        nav.subnav a:hover, nav.subnav a.active { border-bottom-color: var(--saffron); }
+        nav.subnav .inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0.4rem; padding: 0.6rem 1.5rem; flex-wrap: wrap; }
+        nav.subnav a {
+            color: #cfdcee; text-decoration: none; font-size: 0.88rem; font-weight: 600;
+            padding: 0.4rem 0.9rem; border-radius: 999px; transition: background 0.15s, color 0.15s;
+        }
+        nav.subnav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        nav.subnav a.active { background: var(--saffron); color: var(--navy-dark); }
         main { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
         h1 { color: var(--navy-dark); margin-top: 0; }
         a { color: var(--navy); }
-        .btn { display: inline-block; background: var(--navy); color: #fff; padding: 0.45rem 0.9rem; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
-        .btn:hover { background: var(--navy-dark); text-decoration: none; }
+        .btn {
+            display: inline-block; background: var(--navy); color: #fff; padding: 0.55rem 1.1rem;
+            border-radius: var(--radius-sm); text-decoration: none; font-size: 0.9rem; font-weight: 600;
+            box-shadow: var(--shadow); transition: background 0.15s, box-shadow 0.15s, transform 0.15s; border: none;
+        }
+        .btn:hover { background: var(--navy-dark); text-decoration: none; box-shadow: var(--shadow-lg); transform: translateY(-1px); }
         table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.88rem; }
         table caption { caption-side: top; text-align: left; margin-bottom: 0.5rem; }
-        th, td { border: 1px solid #d7dee6; padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
+        th, td { border: 1px solid var(--border); padding: 0.6rem 0.7rem; text-align: left; vertical-align: top; }
         th { background: var(--navy); color: #fff; font-weight: 600; position: sticky; top: 0; }
-        tr:nth-child(even) td { background: #eef2f7; }
-        .table-wrap { overflow-x: auto; border: 1px solid #d7dee6; border-radius: 4px; }
+        tr:nth-child(even) td { background: #f3f6fa; }
+        tr:hover td { background: #eaf0f8; }
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); }
+        .table-wrap table { border-radius: var(--radius-md); }
         .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-        .column { background: #fff; border: 1px solid #d7dee6; border-radius: 6px; padding: 0.75rem; }
+        .column { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0.9rem; box-shadow: var(--shadow); }
         .column h3 { border-bottom: 2px solid var(--saffron); padding-bottom: 0.5rem; margin-top: 0; color: var(--navy-dark); }
-        .card { border: 1px solid #d7dee6; border-radius: 6px; padding: 0.6rem 0.75rem; margin-bottom: 0.6rem; background: var(--paper); }
-        .card small { color: #555; }
-        .pill { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; background: #e2e8f0; }
-        .pill.sdm { background: #ffe1b3; color: #7a4a00; }
-        form p { margin: 0.75rem 0; }
-        input, textarea, select { width: 100%; padding: 0.4rem; box-sizing: border-box; border: 1px solid #c2ccd6; border-radius: 3px; }
+        .card {
+            border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.7rem 0.85rem;
+            margin-bottom: 0.6rem; background: #fff; box-shadow: 0 1px 4px rgba(11, 61, 110, 0.05);
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+        .card small { color: var(--muted); }
+        .pill {
+            display: inline-block; padding: 0.15rem 0.65rem; border-radius: 999px; font-size: 0.72rem;
+            font-weight: 600; background: #e2e8f0; color: #45505c;
+        }
+        .pill.success { background: #e4f3e0; color: var(--green); }
+        .pill.warning, .pill.sdm { background: #ffe9cc; color: #a15a00; }
+        .pill.danger { background: #fbe4e1; color: #c0392b; }
+        .pill.info { background: #e8eef7; color: var(--navy); }
+        form p { margin: 0.85rem 0; }
+        label { font-weight: 600; font-size: 0.88rem; color: var(--navy-dark); }
+        input, textarea, select {
+            width: 100%; padding: 0.5rem 0.65rem; box-sizing: border-box; border: 1px solid #c2ccd6;
+            border-radius: var(--radius-sm); font-family: inherit; font-size: 0.9rem;
+        }
+        input:focus, textarea:focus, select:focus { outline: 2px solid var(--saffron); outline-offset: 1px; border-color: var(--navy); }
         .project-list { list-style: none; padding: 0; }
         .project-list li { padding: 0.75rem 0; border-bottom: 1px solid #e0e6ec; }
-        .tabs { margin-bottom: 1rem; }
-        .tabs a { margin-right: 1rem; text-decoration: none; }
-        .tabs a.active { font-weight: 700; border-bottom: 2px solid var(--saffron); }
+        .tabs { margin-bottom: 1.1rem; display: flex; gap: 0.4rem; }
+        .tabs a { text-decoration: none; padding: 0.35rem 0.9rem; border-radius: 999px; color: var(--navy); font-size: 0.88rem; font-weight: 600; }
+        .tabs a.active { background: var(--navy); color: #fff; }
         .org-role { margin-bottom: 1.5rem; }
-        .org-role h3 { color: var(--navy-dark); border-bottom: 1px solid #d7dee6; padding-bottom: 0.3rem; }
-        footer { text-align: center; color: #667; font-size: 0.8rem; padding: 1rem; }
+        .org-role h3 { color: var(--navy-dark); border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+        .avatar {
+            display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+            border-radius: 50%; background: var(--navy); color: #fff; font-size: 0.7rem; font-weight: 700;
+            vertical-align: middle; margin-right: 0.4rem;
+        }
+        footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem; }
     </style>
 </head>
 <body>
@@ -85,11 +124,11 @@
     </header>
     <nav class="subnav">
         <div class="inner">
-            <a href="{% url 'team-org' %}">Team</a>
-            <a href="{% url 'project-list' %}">Projects</a>
-            <a href="{% url 'ticket-tracker' %}">Ticket Tracker</a>
-            <a href="{% url 'application-list' %}">Applications</a>
-            <a href="{% url 'transition-list' %}">Transition Plan</a>
+            <a href="{% url 'team-org' %}" class="{% if request.resolver_match.url_name == 'team-org' or request.resolver_match.url_name == 'employee-detail' %}active{% endif %}">Team</a>
+            <a href="{% url 'project-list' %}" class="{% if request.resolver_match.url_name in 'project-list,project-create,project-detail' %}active{% endif %}">Projects</a>
+            <a href="{% url 'ticket-tracker' %}" class="{% if request.resolver_match.url_name in 'ticket-tracker,ticket-detail' %}active{% endif %}">Ticket Tracker</a>
+            <a href="{% url 'application-list' %}" class="{% if request.resolver_match.url_name in 'application-list,application-detail' %}active{% endif %}">Applications</a>
+            <a href="{% url 'transition-list' %}" class="{% if request.resolver_match.url_name in 'transition-list,transition-detail' %}active{% endif %}">Transition Plan</a>
         </div>
     </nav>
     <main>

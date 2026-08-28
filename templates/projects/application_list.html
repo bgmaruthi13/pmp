@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load project_extras %}
 {% block title %}Applications · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <h1>Application Inventory</h1>
@@ -25,7 +26,7 @@
                 <tr>
                     <td><small>{{ app.global_id }}</small></td>
                     <td><a href="{{ app.get_absolute_url }}">{{ app.name }}</a></td>
-                    <td>{{ app.get_sensitivity_display }}</td>
+                    <td><span class="pill {{ app.sensitivity|sensitivity_pill }}">{{ app.get_sensitivity_display }}</span></td>
                     <td>{{ app.architecture_container }}</td>
                     <td>{{ app.gsc_owner|default:"—" }}</td>
                     <td>{{ app.it_perimeter_lvl2|default:"—" }}</td>

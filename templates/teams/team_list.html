@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load team_extras %}
 {% block title %}Team · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <h1>Team</h1>
@@ -18,7 +19,7 @@
         <tbody>
             {% for row in rows %}
                 <tr>
-                    <td><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
+                    <td><span class="avatar">{{ row.employee.name|initials }}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
                     <td>{{ row.employee.get_role_display }}</td>
                     <td>{{ row.employee.manager.name|default:"—" }}</td>
                     <td>{{ row.employee.email|default:"—" }}</td>

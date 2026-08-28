@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load project_extras %}
 {% block title %}{{ application.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <p><a href="{% url 'application-list' %}">&larr; Back to Application Inventory</a></p>
@@ -7,7 +8,7 @@
     <table>
         <tbody>
             <tr><th>Global ID</th><td><small>{{ application.global_id }}</small></td></tr>
-            <tr><th>Sensitivity</th><td>{{ application.get_sensitivity_display }}</td></tr>
+            <tr><th>Sensitivity</th><td><span class="pill {{ application.sensitivity|sensitivity_pill }}">{{ application.get_sensitivity_display }}</span></td></tr>
             <tr><th>Architecture Container</th><td>{{ application.architecture_container|default:"—" }}</td></tr>
             <tr><th>GSC Owner</th><td>{{ application.gsc_owner|default:"—" }}</td></tr>
             <tr><th>IT Perimeter lvl2</th><td>{{ application.it_perimeter_lvl2|default:"—" }}</td></tr>

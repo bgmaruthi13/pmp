@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% load team_extras project_extras %}
 {% block title %}{{ employee.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
-    <h1>{{ employee.name }}</h1>
+    <h1><span class="avatar" style="width:38px;height:38px;font-size:0.85rem;">{{ employee.name|initials }}</span>{{ employee.name }}</h1>
 
     <div class="table-wrap" style="max-width: 500px;">
     <table>
@@ -45,7 +46,7 @@
                     <td>{{ ticket.ticket_id }}</td>
                     <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.title }}</a></td>
                     <td>{{ ticket.project.name }}</td>
-                    <td>{{ ticket.get_status_display }}</td>
+                    <td><span class="pill {{ ticket.status|status_pill }}">{{ ticket.get_status_display }}</span></td>
                     <td>{{ ticket.due_date|default:"—" }}</td>
                 </tr>
             {% empty %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load project_extras %}
 {% block title %}{{ ticket.ticket_id }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <p><a href="{% url 'ticket-tracker' %}">&larr; Back to Ticket Tracker</a></p>
@@ -13,7 +14,7 @@
             <tr><th>Project</th><td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.project.name }}</a></td></tr>
             <tr><th>Area</th><td>{{ ticket.area|default:"—" }}</td></tr>
             <tr><th>Type</th><td>{{ ticket.get_ticket_type_display }}</td></tr>
-            <tr><th>Status</th><td>{{ ticket.get_status_display }}</td></tr>
+            <tr><th>Status</th><td><span class="pill {{ ticket.status|status_pill }}">{{ ticket.get_status_display }}</span></td></tr>
             <tr>
                 <th>Assigned By</th>
                 <td>{% if ticket.assigned_by %}<a href="{{ ticket.assigned_by.get_absolute_url }}">{{ ticket.assigned_by.name }}</a>{% else %}—{% endif %}</td>
