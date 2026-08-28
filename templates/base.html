@@ -36,16 +36,28 @@
         header.masthead .brand-text strong { font-size: 1.1rem; display: block; }
         header.masthead .brand-text small { opacity: 0.8; }
         header.masthead a { color: #fff; }
-        .topbar { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .topbar { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
         nav.subnav { background: var(--navy-dark); }
-        nav.subnav .inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 0.4rem; padding: 0.6rem 1.5rem; flex-wrap: wrap; }
+        nav.subnav .inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0.4rem; padding: 0.6rem 1.5rem; flex-wrap: wrap; }
         nav.subnav a {
             color: #cfdcee; text-decoration: none; font-size: 0.88rem; font-weight: 600;
             padding: 0.4rem 0.9rem; border-radius: 999px; transition: background 0.15s, color 0.15s;
         }
         nav.subnav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
         nav.subnav a.active { background: var(--saffron); color: var(--navy-dark); }
-        main { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
+        nav.subnav span.disabled {
+            color: #5c7089; font-size: 0.88rem; font-weight: 600; padding: 0.4rem 0.9rem;
+            cursor: not-allowed; opacity: 0.6;
+        }
+        .messages { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+        .messages li {
+            padding: 0.7rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;
+            font-size: 0.9rem; font-weight: 600;
+        }
+        .messages li.success { background: #e4f3e0; color: var(--green); }
+        .messages li.error { background: #fbe4e1; color: #c0392b; }
+        .messages li.info, .messages li.warning { background: #e8eef7; color: var(--navy); }
+        main { max-width: 1400px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
         h1 { color: var(--navy-dark); margin-top: 0; }
         a { color: var(--navy); }
         .btn {
@@ -125,13 +137,20 @@
     <nav class="subnav">
         <div class="inner">
             <a href="{% url 'team-org' %}" class="{% if request.resolver_match.url_name == 'team-org' or request.resolver_match.url_name == 'employee-detail' %}active{% endif %}">Team</a>
-            <a href="{% url 'project-list' %}" class="{% if request.resolver_match.url_name in 'project-list,project-create,project-detail' %}active{% endif %}">Projects</a>
-            <a href="{% url 'ticket-tracker' %}" class="{% if request.resolver_match.url_name in 'ticket-tracker,ticket-detail' %}active{% endif %}">Ticket Tracker</a>
-            <a href="{% url 'application-list' %}" class="{% if request.resolver_match.url_name in 'application-list,application-detail' %}active{% endif %}">Applications</a>
-            <a href="{% url 'transition-list' %}" class="{% if request.resolver_match.url_name in 'transition-list,transition-detail' %}active{% endif %}">Transition Plan</a>
+            <span class="disabled" title="Temporarily disabled — focusing on Team">Projects</span>
+            <span class="disabled" title="Temporarily disabled — focusing on Team">Ticket Tracker</span>
+            <span class="disabled" title="Temporarily disabled — focusing on Team">Applications</span>
+            <span class="disabled" title="Temporarily disabled — focusing on Team">Transition Plan</span>
         </div>
     </nav>
     <main>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
     <footer>eSuvidha Ops Portal — internal demo, styled after e-Filing-style government portals. Not affiliated with any government department.</footer>
