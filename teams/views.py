@@ -587,18 +587,6 @@ def _cross_matrix(counts_by_row, columns):
     return rows
 
 
-def _classify_work_category(item):
-    """Lightweight keyword heuristic: no Azure DevOps field cleanly separates
-    'configuration' from 'development' work, so scan the type/tags/title/description
-    for configuration-flavored language and bucket everything else as Development."""
-    haystack = " ".join(
-        [item.work_item_type or "", item.tags or "", item.title or "", item.description or ""]
-    ).lower()
-    if "config" in haystack:
-        return "Configuration"
-    return "Development"
-
-
 def _parse_month_filter(request):
     raw = request.GET.get("months", "").strip()
     try:
@@ -651,12 +639,10 @@ def _team_analysis_data(request):
     by_country_count = Counter()
     by_type = Counter()
     by_component_count = Counter()
-    by_category_count = Counter()
     monthly = Counter()
     dev_month_counts = {}
     country_month_counts = {}
     component_country_counts = {}
-    category_country_counts = {}
     rows_by_employee = {}
     countries_present = set()
     total_points = 0
@@ -665,16 +651,13 @@ def _team_analysis_data(request):
         employee = item.employee
         emp_country = employee.country or "Unspecified"
         component = item.area_path or "Unspecified"
-        category = _classify_work_category(item)
         countries_present.add(emp_country)
 
         by_developer_count[employee.name] += 1
         by_country_count[emp_country] += 1
         by_type[item.work_item_type or "Unspecified"] += 1
         by_component_count[component] += 1
-        by_category_count[category] += 1
         component_country_counts.setdefault(component, Counter())[emp_country] += 1
-        category_country_counts.setdefault(category, Counter())[emp_country] += 1
 
         points = item.story_points or 0
         total_points += points
@@ -716,7 +699,6 @@ def _team_analysis_data(request):
             "by_country": _bar_series(by_country_count),
             "by_type": by_type.most_common(),
             "by_component": _bar_series(by_component_count),
-            "by_category": _bar_series(by_category_count),
             "monthly_series": monthly_series,
         },
         "months_columns": months_columns,
@@ -724,7 +706,6 @@ def _team_analysis_data(request):
         "country_matrix": _cross_matrix(country_month_counts, months_columns),
         "countries_columns": countries_columns,
         "component_matrix": _cross_matrix(component_country_counts, countries_columns),
-        "category_matrix": _cross_matrix(category_country_counts, countries_columns),
         "story_rows": [
             {
                 "employee": i.employee,
@@ -733,7 +714,6 @@ def _team_analysis_data(request):
                 "country": i.employee.country or "Unspecified",
                 "type": i.work_item_type,
                 "component": i.area_path,
-                "category": _classify_work_category(i),
                 "url": i.url,
             }
             for i in story_rows[:story_row_limit]
@@ -777,35 +757,44 @@ def _build_team_analysis_prompt(data):
     country_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_country"])
     type_lines = "\n".join(f"- {t}: {c}" for t, c in charts["by_type"])
     component_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_component"])
-    category_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_category"])
     monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in charts["monthly_series"])
+
     sample_lines = []
-    for i in data["items"][:40]:
+    for i in data["items"][:60]:
         line = f"- [{i.work_item_type or 'Item'}] {i.title}"
+        if i.area_path:
+            line += f" (Area Path: {i.area_path})"
         if i.description:
-            line += f" — {i.description[:150]}"
+            line += f" — {i.description[:200]}"
         sample_lines.append(line)
     sample_titles = "\n".join(sample_lines)
+    more_note = ""
+    if total_items > 60:
+        more_note = f" (showing 60 of {total_items} — ask for more if you need the rest)"
 
     return (
         f"{scope_line}"
         f"Analyze this team's delivery history based on {total_items} tracked user stories/tickets "
         f"totalling {summary['total_points'] or 0} story points.\n\n"
+        f"Reference data (from Azure DevOps fields, for context only — please form your own "
+        f"judgment from the ticket text below rather than just repeating these numbers):\n"
         f"By developer:\n{dev_lines}\n\n"
         f"By country:\n{country_lines}\n\n"
-        f"By type:\n{type_lines}\n\n"
-        f"By product/component (Area Path):\n{component_lines}\n\n"
-        f"Configuration vs Development work (keyword-based estimate, not authoritative):\n{category_lines}\n\n"
+        f"By work item type:\n{type_lines}\n\n"
+        f"By Area Path (as tagged in the source system, may be incomplete or inconsistently used):\n{component_lines}\n\n"
         f"Monthly delivery trend:\n{monthly_lines}\n\n"
-        f"Sample tickets (with description where available):\n{sample_titles}\n\n"
-        "Please summarize: (1) the overall delivery trend over time and whether it's accelerating, "
-        "steady, or slowing, (2) the mix of user story types being worked on and what that suggests "
-        "about current priorities, (3) how work is distributed across countries/locations and "
-        "developers, and whether that looks balanced, (4) which products/components are generating "
-        "the most requests or changes and what that suggests about where investment is needed, "
-        "(5) the split between configuration and development-type work and whether that balance "
-        "looks right, and (6) the important subjects/themes this team has been working on, based on "
-        "the sample ticket titles and descriptions above."
+        f"Tickets{more_note} — read the title and description of each to do your own analysis:\n{sample_titles}\n\n"
+        "Based on reading the actual ticket titles and descriptions above (not just the reference "
+        "counts), please: (1) classify each ticket, or group of similar tickets, as primarily "
+        "'configuration' work (settings, environment, access, parameter changes) or 'development' "
+        "work (new features, bug fixes, code changes), and give an overall estimate of the split "
+        "with your reasoning, (2) identify the actual products, components, or subsystems these "
+        "tickets relate to based on their content — cross-check against the Area Path data above but "
+        "correct or refine it where the ticket text suggests a better grouping, especially for any "
+        "'Unspecified' ones, (3) name the request types/themes that come up a lot, (4) describe the "
+        "overall delivery trend over time and whether it's accelerating, steady, or slowing, (5) note "
+        "how work is distributed across countries/locations and developers, and whether that looks "
+        "balanced, and (6) summarize the important subjects/themes this team has been working on."
     )
 
 
@@ -831,7 +820,6 @@ def analysis_home(request):
             "country_matrix": data["country_matrix"],
             "countries_columns": data["countries_columns"],
             "component_matrix": data["component_matrix"],
-            "category_matrix": data["category_matrix"],
             "story_rows": data["story_rows"],
             "story_row_total": data["story_row_total"],
             "story_row_limit": data["story_row_limit"],

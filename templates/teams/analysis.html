@@ -102,32 +102,21 @@
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.25rem;">
-            <div class="column">
-                <h3 style="margin-top:0;margin-bottom:0.2rem;">Tickets by Product/Component</h3>
-                <p style="color:var(--muted);font-size:0.78rem;margin-top:0;">From each item's Area Path &mdash; which product or component is generating the most requests.</p>
-                <div class="bar-chart">
-                    {% for row in charts.by_component %}
-                        <div class="bar-col">
-                            <div class="bar-count">{{ row.count }}</div>
-                            <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
-                            <div class="bar-label">{{ row.label }}</div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="column">
-                <h3 style="margin-top:0;margin-bottom:0.2rem;">Configuration vs Development</h3>
-                <p style="color:var(--muted);font-size:0.78rem;margin-top:0;">Keyword-based estimate (looks for &ldquo;config&rdquo; in type/tags/title/description) &mdash; not authoritative.</p>
-                <div class="bar-chart">
-                    {% for row in charts.by_category %}
-                        <div class="bar-col">
-                            <div class="bar-count">{{ row.count }}</div>
-                            <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
-                            <div class="bar-label">{{ row.label }}</div>
-                        </div>
-                    {% endfor %}
-                </div>
+        <div class="column" style="margin-top:1.25rem;">
+            <h3 style="margin-top:0;margin-bottom:0.2rem;">Tickets by Product/Component</h3>
+            <p style="color:var(--muted);font-size:0.78rem;margin-top:0;">
+                Grouped by each item's Area Path as tagged in the source system &mdash; useful, but only
+                as good as that field's data quality. For a read that also accounts for what a ticket
+                is actually about, see the Craft a Prompt section below.
+            </p>
+            <div class="bar-chart">
+                {% for row in charts.by_component %}
+                    <div class="bar-col">
+                        <div class="bar-count">{{ row.count }}</div>
+                        <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                        <div class="bar-label">{{ row.label }}</div>
+                    </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -213,33 +202,6 @@
         </div>
 
         <div class="column" style="margin-top:1.25rem;">
-            <h3 style="margin-top:0;margin-bottom:0.2rem;">Configuration vs Development by Country</h3>
-            <p style="color:var(--muted);font-size:0.8rem;margin-top:0;">Darker cells mean more tickets of that kind from that country.</p>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Work Category</th>
-                            {% for c in countries_columns %}<th style="white-space:nowrap;text-align:center;">{{ c }}</th>{% endfor %}
-                            <th style="text-align:center;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in category_matrix %}
-                            <tr>
-                                <td style="white-space:nowrap;">{{ row.label }}</td>
-                                {% for cell in row.cells %}
-                                    <td class="heat-{{ cell.level }}" style="text-align:center;">{% if cell.count %}{{ cell.count }}{% endif %}</td>
-                                {% endfor %}
-                                <td style="text-align:center;font-weight:600;">{{ row.total }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="column" style="margin-top:1.25rem;">
             <h3 style="margin-top:0;margin-bottom:0.6rem;">Per-Person Breakdown</h3>
             <div class="table-wrap">
                 <table>
@@ -281,7 +243,6 @@
                             <th>Component</th>
                             <th>Country</th>
                             <th>Type</th>
-                            <th>Category</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -293,7 +254,6 @@
                                 <td style="white-space:nowrap;">{{ row.component|default:"—" }}</td>
                                 <td style="white-space:nowrap;">{{ row.country }}</td>
                                 <td style="white-space:nowrap;">{{ row.type|default:"—" }}</td>
-                                <td style="white-space:nowrap;">{{ row.category }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -304,10 +264,11 @@
         <div class="column" style="margin-top:1.25rem;">
             <h3 style="margin-top:0;margin-bottom:0.4rem;">Craft a Prompt</h3>
             <p style="color:var(--muted);font-size:0.85rem;margin-top:0;">
-                Copy this into M365 Copilot (or any LLM chat) to get a written analysis of the
-                team's delivery trend, the mix of user story types, which products/components are
-                generating the most work, the configuration-vs-development split, how work is
-                spread across countries and developers, and the important subjects being worked on.
+                Copy this into M365 Copilot (or any LLM chat). It includes the actual ticket titles
+                and descriptions (not just our local counts), and asks the AI to do the parts that
+                need real reading comprehension: classifying configuration vs development work,
+                identifying the real products/components/themes each ticket is about, and
+                summarizing the delivery trend, story-type mix, and country/developer distribution.
                 Reflects the filters above, if any are set.
             </p>
             <textarea id="team-analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
