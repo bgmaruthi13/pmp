@@ -25,13 +25,40 @@ class Role(models.Model):
 
 class Employee(models.Model):
     name = models.CharField(max_length=150)
+    emp_id = models.CharField("EMP ID", max_length=20, blank=True)
     email = models.EmailField(blank=True)
+    designation = models.CharField(
+        max_length=150, blank=True, help_text="Job title / grade, e.g. Lead Software Engineer."
+    )
     roles = models.ManyToManyField(Role, related_name="employees", blank=True)
     projects = models.ManyToManyField(
         "projects.Project", related_name="team_members", blank=True
     )
     manager = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="reports"
+    )
+    line_manager = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="line_reports",
+        verbose_name="Line reporting manager",
+        help_text="Skip-level / dotted-line manager, when different from the direct manager.",
+    )
+    doj = models.DateField("Date of joining", null=True, blank=True)
+    wfh_exceptions = models.CharField("WFH exceptions", max_length=200, blank=True)
+    achievements = models.TextField(blank=True)
+    escalations = models.TextField(blank=True)
+    awards = models.TextField(blank=True)
+    rtb_efficiency = models.DecimalField(
+        "RTB efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    gsc_efficiency = models.DecimalField(
+        "GSC efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    ai_efficiency = models.DecimalField(
+        "AI efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
     )
     azure_devops_query_url = models.URLField(
         blank=True,

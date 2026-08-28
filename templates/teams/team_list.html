@@ -10,17 +10,35 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Roles</th>
+                <th>EMP ID</th>
+                <th>Designation</th>
+                <th>Project Role</th>
                 <th>Manager</th>
+                <th>Line Manager</th>
+                <th>DOJ</th>
                 <th>Email</th>
                 <th>Project(s)</th>
+                <th>WFH Exceptions</th>
+                <th>Achievements</th>
+                <th>Escalations</th>
+                <th>Awards</th>
+                <th>RTB Efficiency</th>
+                <th>GSC Efficiency</th>
+                <th>AI Efficiency</th>
                 <th>Tickets</th>
             </tr>
         </thead>
         <tbody>
             {% for row in rows %}
                 <tr>
-                    <td><span class="avatar">{{ row.employee.name|initials }}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
+                    <td>
+                        <span class="avatar">{{ row.employee.name|initials }}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a>
+                        {% if user.is_authenticated %}
+                            <div><small><a href="#" onclick="openEditEmployee({{ row.employee.pk }}); return false;">Edit</a></small></div>
+                        {% endif %}
+                    </td>
+                    <td>{{ row.employee.emp_id|default:"—" }}</td>
+                    <td>{{ row.employee.designation|default:"—" }}</td>
                     <td>
                         {% for role in row.employee.roles.all %}
                             <span class="pill info">{{ role.name }}</span>
@@ -29,18 +47,45 @@
                         {% endfor %}
                     </td>
                     <td>{{ row.employee.manager.name|default:"—" }}</td>
+                    <td>{{ row.employee.line_manager.name|default:"—" }}</td>
+                    <td>{{ row.employee.doj|default:"—" }}</td>
                     <td>{{ row.employee.email|default:"—" }}</td>
                     <td>
                         <a href="{% url 'employee-projects-edit' row.employee.pk %}">
                             {% for project in row.projects %}{{ project.name }}{% if not forloop.last %}, {% endif %}{% empty %}Edit projects{% endfor %}
                         </a>
                     </td>
+                    <td>{{ row.employee.wfh_exceptions|default:"—" }}</td>
+                    <td>{{ row.employee.achievements|default:"—" }}</td>
+                    <td>{{ row.employee.escalations|default:"—" }}</td>
+                    <td>{{ row.employee.awards|default:"—" }}</td>
+                    <td>{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
+                    <td>{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
+                    <td>{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
                     <td><a href="{% url 'employee-work' row.employee.pk %}">{{ row.ticket_count }}</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="6">No team members yet.</td></tr>
+                <tr><td colspan="17">No team members yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
     </div>
+
+    {% if user.is_authenticated %}
+        <dialog id="edit-employee-modal" style="width:min(720px, 94vw); border:none; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:1.5rem;">
+            <div id="edit-employee-content">Loading&hellip;</div>
+        </dialog>
+        <script>
+            function openEditEmployee(employeeId) {
+                var dialog = document.getElementById('edit-employee-modal');
+                var content = document.getElementById('edit-employee-content');
+                content.innerHTML = 'Loading&hellip;';
+                dialog.showModal();
+                fetch('/' + employeeId + '/edit/')
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) { content.innerHTML = html; })
+                    .catch(function () { content.innerHTML = '<p>Could not load this form.</p>'; });
+            }
+        </script>
+    {% endif %}
 {% endblock %}

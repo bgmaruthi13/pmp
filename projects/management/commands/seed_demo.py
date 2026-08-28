@@ -31,16 +31,38 @@ class Command(BaseCommand):
             roles[role_name] = role
 
         lead, _ = Employee.objects.get_or_create(
-            name="Ananya Krishnan", defaults={"email": "ananya.krishnan@example.com"}
+            name="Ananya Krishnan",
+            defaults={
+                "email": "ananya.krishnan@example.com",
+                "emp_id": "EMP001",
+                "designation": "Engineering Manager",
+                "doj": date(2022, 1, 10),
+                "rtb_efficiency": 12.5,
+                "gsc_efficiency": 8.0,
+                "ai_efficiency": 15.0,
+                "achievements": "Led the ITR e-Filing Portal launch.",
+            },
         )
         lead.roles.set([roles["Project Lead"]])
         sdm, _ = Employee.objects.get_or_create(
-            name="Arjun Malhotra", defaults={"email": "arjun.malhotra@example.com"}
+            name="Arjun Malhotra",
+            defaults={
+                "email": "arjun.malhotra@example.com",
+                "emp_id": "EMP002",
+                "designation": "Service Delivery Manager",
+                "doj": date(2021, 6, 1),
+            },
         )
         sdm.roles.set([roles["Service Delivery Manager"]])
         platform_lead, _ = Employee.objects.get_or_create(
             name="Vikram Nair",
-            defaults={"email": "vikram.nair@example.com", "manager": lead},
+            defaults={
+                "email": "vikram.nair@example.com",
+                "manager": lead,
+                "emp_id": "EMP003",
+                "designation": "Lead Software Engineer",
+                "doj": date(2022, 3, 15),
+            },
         )
         platform_lead.roles.set([roles["Platform Engineer Lead"]])
 
@@ -48,20 +70,80 @@ class Command(BaseCommand):
         # resources who work across, e.g., DevOps and Database, or
         # Platform Engineering and general development.
         employees_data = [
-            ("Divya Menon", ["Platform Engineer"], platform_lead),
-            ("Sanjay Iyer", ["Platform Engineer", "Developer"], platform_lead),
-            ("Rohit Deshmukh", ["Database Engineer"], lead),
-            ("Priya Raghavan", ["DevOps / Integration"], lead),
-            ("Karthik Subramaniam", ["DevOps / Integration", "Database Engineer"], lead),
-            ("Neha Kulkarni", ["DevOps / Integration", "Developer"], lead),
+            (
+                "Divya Menon",
+                ["Platform Engineer"],
+                platform_lead,
+                {
+                    "emp_id": "EMP004",
+                    "designation": "Specialist Software Engineer",
+                    "doj": date(2022, 7, 1),
+                    "line_manager": lead,
+                    "rtb_efficiency": 10,
+                    "gsc_efficiency": 5,
+                    "ai_efficiency": 20,
+                    "achievements": "Reduced OTP failure rate by 30%.",
+                },
+            ),
+            (
+                "Sanjay Iyer",
+                ["Platform Engineer", "Developer"],
+                platform_lead,
+                {
+                    "emp_id": "EMP005",
+                    "designation": "Software Engineer",
+                    "doj": date(2023, 1, 16),
+                    "line_manager": lead,
+                },
+            ),
+            (
+                "Rohit Deshmukh",
+                ["Database Engineer"],
+                lead,
+                {
+                    "emp_id": "EMP006",
+                    "designation": "Specialist System Engineer",
+                    "doj": date(2022, 9, 1),
+                    "escalations": "P1 - Refund DB outage, Mar 2026 (resolved).",
+                },
+            ),
+            (
+                "Priya Raghavan",
+                ["DevOps / Integration"],
+                lead,
+                {
+                    "emp_id": "EMP007",
+                    "designation": "Lead Software Engineer",
+                    "doj": date(2021, 11, 20),
+                    "wfh_exceptions": "Approved - relocated to Pune.",
+                },
+            ),
+            (
+                "Karthik Subramaniam",
+                ["DevOps / Integration", "Database Engineer"],
+                lead,
+                {
+                    "emp_id": "EMP008",
+                    "designation": "Specialist Software Engineer",
+                    "doj": date(2022, 2, 14),
+                    "awards": "Aug'26 - SDQ Award - SCHREMS Project & NIST Controls.",
+                },
+            ),
+            (
+                "Neha Kulkarni",
+                ["DevOps / Integration", "Developer"],
+                lead,
+                {"emp_id": "EMP009", "designation": "Software Engineer", "doj": date(2023, 5, 8)},
+            ),
         ]
         employees = {"Ananya Krishnan": lead, "Vikram Nair": platform_lead, "Arjun Malhotra": sdm}
-        for name, role_names, manager in employees_data:
+        for name, role_names, manager, extra in employees_data:
             emp, _ = Employee.objects.get_or_create(
                 name=name,
                 defaults={
                     "manager": manager,
                     "email": f"{name.lower().replace(' ', '.')}@example.com",
+                    **extra,
                 },
             )
             emp.roles.set([roles[r] for r in role_names])

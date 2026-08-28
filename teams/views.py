@@ -14,6 +14,7 @@ from django.urls import reverse
 from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
+from .forms import EmployeeForm
 from .models import AzureDevOpsSettings, Employee, WorkItem
 
 MAX_WORK_IMPORT_ROWS = 1000
@@ -34,7 +35,7 @@ WORK_IMPORT_FIELDS = [
 
 def team_list(request):
     employees = (
-        Employee.objects.select_related("manager")
+        Employee.objects.select_related("manager", "line_manager")
         .prefetch_related("tickets_received", "roles", "projects")
         .order_by("name")
     )
@@ -47,6 +48,20 @@ def team_list(request):
         for employee in employees
     ]
     return render(request, "teams/team_list.html", {"rows": rows})
+
+
+@login_required
+def employee_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    if request.method == "POST":
+        form = EmployeeForm(request.POST, instance=employee, employee=employee)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Updated {employee.name}.")
+            return redirect("team-org")
+    else:
+        form = EmployeeForm(instance=employee, employee=employee)
+    return render(request, "teams/employee_edit_modal.html", {"employee": employee, "form": form})
 
 
 def employee_detail(request, pk):

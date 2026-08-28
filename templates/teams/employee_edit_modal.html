@@ -1,0 +1,24 @@
+<h2 style="margin:0 0 1rem;color:var(--navy-dark);">Edit {{ employee.name }}</h2>
+<form method="post" action="{% url 'employee-edit' employee.pk %}">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 1.25rem;">
+        <p>{{ form.name.label_tag }}{{ form.name }}</p>
+        <p>{{ form.emp_id.label_tag }}{{ form.emp_id }}</p>
+        <p>{{ form.email.label_tag }}{{ form.email }}</p>
+        <p>{{ form.designation.label_tag }}{{ form.designation }}</p>
+        <p>{{ form.manager.label_tag }}{{ form.manager }}</p>
+        <p>{{ form.line_manager.label_tag }}{{ form.line_manager }}</p>
+        <p>{{ form.doj.label_tag }}{{ form.doj }}</p>
+        <p>{{ form.wfh_exceptions.label_tag }}{{ form.wfh_exceptions }}</p>
+        <p>{{ form.rtb_efficiency.label_tag }}{{ form.rtb_efficiency }}</p>
+        <p>{{ form.gsc_efficiency.label_tag }}{{ form.gsc_efficiency }}</p>
+        <p>{{ form.ai_efficiency.label_tag }}{{ form.ai_efficiency }}</p>
+    </div>
+    <p>{{ form.achievements.label_tag }}{{ form.achievements }}</p>
+    <p>{{ form.escalations.label_tag }}{{ form.escalations }}</p>
+    <p>{{ form.awards.label_tag }}{{ form.awards }}</p>
+    <p style="margin-top:1.25rem;">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn" type="button" style="background:#8a97a6;" onclick="document.getElementById('edit-employee-modal').close()">Cancel</button>
+    </p>
+</form>
