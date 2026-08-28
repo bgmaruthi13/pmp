@@ -11,6 +11,7 @@ class EmployeeForm(forms.ModelForm):
             "emp_id",
             "email",
             "designation",
+            "country",
             "manager",
             "line_manager",
             "doj",

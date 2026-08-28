@@ -564,6 +564,72 @@ def _analysis_summary():
     }
 
 
+def _bar_series(counter):
+    max_count = max(counter.values(), default=0)
+    return [
+        {"label": label or "Unspecified", "count": count, "pct": round(count / max_count * 100) if max_count else 0}
+        for label, count in counter.most_common()
+    ]
+
+
+def _team_analysis_charts():
+    items = list(WorkItem.objects.select_related("employee"))
+    by_developer = Counter()
+    by_country = Counter()
+    by_type = Counter()
+    monthly = Counter()
+    for item in items:
+        by_developer[item.employee.name] += 1
+        by_country[item.employee.country or "Unspecified"] += 1
+        by_type[item.work_item_type or "Unspecified"] += 1
+        d = item.closed_date or item.created_date
+        if d:
+            monthly[d.strftime("%Y-%m")] += 1
+
+    max_monthly = max(monthly.values(), default=0)
+    monthly_series = [
+        {"month": month, "count": count, "pct": round(count / max_monthly * 100) if max_monthly else 0}
+        for month, count in sorted(monthly.items())
+    ]
+
+    return {
+        "items": items,
+        "by_developer": _bar_series(by_developer),
+        "by_country": _bar_series(by_country),
+        "by_type": by_type.most_common(),
+        "monthly_series": monthly_series,
+    }
+
+
+def _build_team_analysis_prompt(charts, total_items, total_points):
+    if not total_items:
+        return (
+            "No user stories are on file yet for the team. Sync from Azure DevOps or import an "
+            "Excel/CSV file on the Analysis tab, then reopen this prompt."
+        )
+
+    dev_lines = "\n".join(f"- {d['label']}: {d['count']}" for d in charts["by_developer"])
+    country_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_country"])
+    type_lines = "\n".join(f"- {t}: {c}" for t, c in charts["by_type"])
+    monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in charts["monthly_series"])
+    sample_titles = "\n".join(f"- [{i.work_item_type or 'Item'}] {i.title}" for i in charts["items"][:40])
+
+    return (
+        f"Analyze this team's delivery history based on {total_items} tracked user stories/tickets "
+        f"totalling {total_points or 0} story points.\n\n"
+        f"By developer:\n{dev_lines}\n\n"
+        f"By country:\n{country_lines}\n\n"
+        f"By type:\n{type_lines}\n\n"
+        f"Monthly delivery trend:\n{monthly_lines}\n\n"
+        f"Sample tickets:\n{sample_titles}\n\n"
+        "Please summarize: (1) the overall delivery trend over time and whether it's accelerating, "
+        "steady, or slowing, (2) the mix of user story types being worked on and what that suggests "
+        "about current priorities, (3) how work is distributed across countries/locations and "
+        "developers, and whether that looks balanced, and (4) the important subjects/themes this "
+        "team has been working on, based on the sample ticket titles above."
+    )
+
+
 def analysis_home(request):
     settings_obj = AzureDevOpsSettings.load()
     ado_error = None
@@ -589,6 +655,8 @@ def analysis_home(request):
             run_team_ado_sync(settings_obj)
             settings_obj.refresh_from_db()
 
+    summary = _analysis_summary()
+    charts = _team_analysis_charts()
     return render(
         request,
         "teams/analysis.html",
@@ -596,7 +664,9 @@ def analysis_home(request):
             "settings_obj": settings_obj,
             "ado_error": ado_error,
             "pat_configured": bool(settings_obj.personal_access_token),
-            "summary": _analysis_summary(),
+            "summary": summary,
+            "charts": charts,
+            "prompt": _build_team_analysis_prompt(charts, summary["total_items"], summary["total_points"]),
         },
     )
 

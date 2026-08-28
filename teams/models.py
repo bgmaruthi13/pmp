@@ -30,6 +30,9 @@ class Employee(models.Model):
     designation = models.CharField(
         max_length=150, blank=True, help_text="Job title / grade, e.g. Lead Software Engineer."
     )
+    country = models.CharField(
+        max_length=100, blank=True, help_text="Where this person is based, e.g. India."
+    )
     roles = models.ManyToManyField(Role, related_name="employees", blank=True)
     projects = models.ManyToManyField(
         "projects.Project", related_name="team_members", blank=True

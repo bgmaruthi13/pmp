@@ -99,4 +99,50 @@
     {% else %}
         <p style="color:var(--muted);">No work items imported yet.</p>
     {% endif %}
+
+    {% if summary.rows %}
+        <h3 style="margin-top:1.5rem;margin-bottom:0.2rem;">Tickets by Developer</h3>
+        <div class="bar-chart">
+            {% for row in charts.by_developer %}
+                <div class="bar-col">
+                    <div class="bar-count">{{ row.count }}</div>
+                    <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                    <div class="bar-label">{{ row.label }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top:1.5rem;margin-bottom:0.2rem;">Tickets by Country</h3>
+        <div class="bar-chart">
+            {% for row in charts.by_country %}
+                <div class="bar-col">
+                    <div class="bar-count">{{ row.count }}</div>
+                    <div class="bar" style="height: {{ row.pct }}%;" title="{{ row.label }}: {{ row.count }}"></div>
+                    <div class="bar-label">{{ row.label }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top:1.5rem;margin-bottom:0.2rem;">Monthly Delivery Trend</h3>
+        <div class="bar-chart">
+            {% for m in charts.monthly_series %}
+                <div class="bar-col">
+                    <div class="bar-count">{{ m.count }}</div>
+                    <div class="bar" style="height: {{ m.pct }}%;" title="{{ m.month }}: {{ m.count }}"></div>
+                    <div class="bar-label">{{ m.month }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Craft a Prompt</h3>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:0;max-width:640px;">
+            Copy this into M365 Copilot (or any LLM chat) to get a written analysis of the team's
+            delivery trend, the mix of user story types, how work is spread across countries and
+            developers, and the important subjects being worked on.
+        </p>
+        <textarea id="team-analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
+        <p>
+            <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('team-analysis-prompt').value)">Copy Prompt</button>
+        </p>
+    {% endif %}
 {% endblock %}

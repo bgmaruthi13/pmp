@@ -36,6 +36,7 @@ class Command(BaseCommand):
                 "email": "ananya.krishnan@example.com",
                 "emp_id": "EMP001",
                 "designation": "Engineering Manager",
+                "country": "India",
                 "doj": date(2022, 1, 10),
                 "rtb_efficiency": 12.5,
                 "gsc_efficiency": 8.0,
@@ -49,6 +50,7 @@ class Command(BaseCommand):
                 "email": "arjun.malhotra@example.com",
                 "emp_id": "EMP002",
                 "designation": "Service Delivery Manager",
+                "country": "India",
                 "doj": date(2021, 6, 1),
             },
         )
@@ -60,6 +62,7 @@ class Command(BaseCommand):
                 "manager": lead,
                 "emp_id": "EMP003",
                 "designation": "Lead Software Engineer",
+                "country": "India",
                 "doj": date(2022, 3, 15),
             },
         )
@@ -76,6 +79,7 @@ class Command(BaseCommand):
                 {
                     "emp_id": "EMP004",
                     "designation": "Specialist Software Engineer",
+                    "country": "India",
                     "doj": date(2022, 7, 1),
                     "line_manager": lead,
                     "rtb_efficiency": 10,
@@ -90,6 +94,7 @@ class Command(BaseCommand):
                 {
                     "emp_id": "EMP005",
                     "designation": "Software Engineer",
+                    "country": "Poland",
                     "doj": date(2023, 1, 16),
                     "line_manager": lead,
                 },
@@ -101,6 +106,7 @@ class Command(BaseCommand):
                 {
                     "emp_id": "EMP006",
                     "designation": "Specialist System Engineer",
+                    "country": "India",
                     "doj": date(2022, 9, 1),
                 },
             ),
@@ -111,6 +117,7 @@ class Command(BaseCommand):
                 {
                     "emp_id": "EMP007",
                     "designation": "Lead Software Engineer",
+                    "country": "United States",
                     "doj": date(2021, 11, 20),
                 },
             ),
@@ -121,6 +128,7 @@ class Command(BaseCommand):
                 {
                     "emp_id": "EMP008",
                     "designation": "Specialist Software Engineer",
+                    "country": "India",
                     "doj": date(2022, 2, 14),
                     "awards": "Aug'26 - SDQ Award - SCHREMS Project & NIST Controls.",
                 },
@@ -129,7 +137,12 @@ class Command(BaseCommand):
                 "Neha Kulkarni",
                 ["DevOps / Integration", "Developer"],
                 lead,
-                {"emp_id": "EMP009", "designation": "Software Engineer", "doj": date(2023, 5, 8)},
+                {
+                    "emp_id": "EMP009",
+                    "designation": "Software Engineer",
+                    "country": "Poland",
+                    "doj": date(2023, 5, 8),
+                },
             ),
         ]
         employees = {"Ananya Krishnan": lead, "Vikram Nair": platform_lead, "Arjun Malhotra": sdm}
