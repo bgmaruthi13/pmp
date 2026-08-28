@@ -45,10 +45,6 @@
         }
         nav.subnav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
         nav.subnav a.active { background: var(--saffron); color: var(--navy-dark); }
-        nav.subnav span.disabled {
-            color: #5c7089; font-size: 0.88rem; font-weight: 600; padding: 0.4rem 0.9rem;
-            cursor: not-allowed; opacity: 0.6;
-        }
         .messages { list-style: none; padding: 0; margin: 0 0 1.25rem; }
         .messages li {
             padding: 0.7rem 1rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;
@@ -184,10 +180,6 @@
     <nav class="subnav">
         <div class="inner">
             <a href="{% url 'team-org' %}" class="{% if request.resolver_match.url_name == 'team-org' or request.resolver_match.url_name == 'team-efficiency' or request.resolver_match.url_name == 'team-analysis' or request.resolver_match.url_name == 'analysis-import-upload' or request.resolver_match.url_name == 'analysis-import-map' or request.resolver_match.url_name == 'employee-detail' %}active{% endif %}">Team</a>
-            <span class="disabled" title="Temporarily disabled — focusing on Team">Projects</span>
-            <span class="disabled" title="Temporarily disabled — focusing on Team">Ticket Tracker</span>
-            <span class="disabled" title="Temporarily disabled — focusing on Team">Applications</span>
-            <span class="disabled" title="Temporarily disabled — focusing on Team">Transition Plan</span>
         </div>
     </nav>
     <main>
