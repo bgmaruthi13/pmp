@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Admin Settings · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <h1 style="margin-top:0;">Admin Settings</h1>
+    <p style="color:var(--muted);max-width:700px;">
+        Every Azure DevOps configuration used by the Analysis tab lives here in one place &mdash;
+        organization, the shared access token, the team-wide query, and the automatic sync
+        schedule.
+    </p>
+
+    {% if settings_obj.last_synced_at %}
+        <p>
+            {% if settings_obj.last_sync_success %}
+                <span class="pill success">Last synced {{ settings_obj.last_synced_at|timesince }} ago</span>
+                &mdash; {{ settings_obj.last_sync_item_count|default:"0" }} item(s) matched.
+            {% else %}
+                <span class="pill danger">Last sync attempt {{ settings_obj.last_synced_at|timesince }} ago failed</span>
+                &mdash; {{ settings_obj.last_sync_error }}
+            {% endif %}
+        </p>
+    {% else %}
+        <p style="color:var(--muted);">Never synced yet.</p>
+    {% endif %}
+
+    <form method="post" style="max-width:640px;">
+        {% csrf_token %}
+
+        <h3 style="margin-bottom:0.4rem;">Azure DevOps</h3>
+        <p>
+            <label for="organization_url">Organization URL</label>
+            <input
+                type="url" name="organization_url" id="organization_url"
+                value="{{ settings_obj.organization_url }}" placeholder="https://dev.azure.com/your-organization"
+            >
+        </p>
+        <p>
+            <label for="personal_access_token">Shared Personal Access Token (PAT)</label>
+            <input
+                type="password" name="personal_access_token" id="personal_access_token"
+                value="{{ settings_obj.personal_access_token }}" autocomplete="new-password"
+            >
+        </p>
+        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+            Used for every Azure DevOps query &mdash; each person's own sync and the team-wide
+            Analysis sync.
+        </p>
+        <p>
+            <label for="team_query_url">Team-wide user stories query URL</label>
+            <input
+                type="url" name="team_query_url" id="team_query_url"
+                value="{{ settings_obj.team_query_url }}"
+                placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+            >
+        </p>
+        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+            Used by the Analysis tab to pull user stories for the whole team, at once, matched to
+            people by assignee.
+        </p>
+
+        <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Automatic Sync</h3>
+        <p>
+            <label style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
+                <input type="checkbox" name="auto_sync_enabled" style="width:auto;" {% if settings_obj.auto_sync_enabled %}checked{% endif %}>
+                Sync automatically
+            </label>
+        </p>
+        <p>
+            <label for="auto_sync_interval_hours">Every (hours)</label>
+            <input
+                type="number" min="1" name="auto_sync_interval_hours" id="auto_sync_interval_hours"
+                value="{{ settings_obj.auto_sync_interval_hours }}" style="width:120px;"
+            >
+        </p>
+        <p style="color:var(--muted);font-size:0.8rem;margin-top:-0.6rem;">
+            While on, visiting the Analysis tab re-syncs in the background once this interval has
+            passed &mdash; at most once per interval, however many people visit. For a schedule
+            that doesn't depend on someone visiting the page, point an external daily cron (Render
+            Cron Job, GitHub Actions, etc.) at <code>python manage.py sync_azure_devops</code> instead.
+        </p>
+
+        <p style="margin-top:1.5rem;">
+            <button class="btn" type="submit">Save Settings</button>
+        </p>
+    </form>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="sync_now">
+        <button class="btn" type="submit" style="background:#8a97a6;">Sync Now</button>
+    </form>
+
+    <p style="margin-top:1.5rem;"><a href="{% url 'team-analysis' %}">Go to Analysis &rarr;</a></p>
+{% endblock %}

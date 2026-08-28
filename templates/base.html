@@ -171,6 +171,9 @@
             </a>
             <div>
                 {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                        <a href="{% url 'admin-settings' %}">Admin Settings</a> ·
+                    {% endif %}
                     {{ user.username }} · <a href="{% url 'admin:logout' %}">Log out</a>
                 {% else %}
                     <a href="{% url 'admin:login' %}">Log in</a>

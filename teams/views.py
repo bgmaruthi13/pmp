@@ -8,6 +8,7 @@ import openpyxl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -571,28 +572,11 @@ def analysis_home(request):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
 
-        action = request.POST.get("action")
-        if action == "ado_sync":
-            query_url = request.POST.get("query_url", "").strip()
-            settings_obj.team_query_url = query_url
-            settings_obj.save(update_fields=["team_query_url"])
-
-            result, error = run_team_ado_sync(settings_obj)
-            if error:
-                ado_error = error
-            else:
-                _flash_import_result(request, result)
-                return redirect("team-analysis")
-
-        elif action == "save_auto_sync":
-            settings_obj.auto_sync_enabled = bool(request.POST.get("auto_sync_enabled"))
-            try:
-                interval = int(request.POST.get("auto_sync_interval_hours", "24"))
-            except ValueError:
-                interval = 24
-            settings_obj.auto_sync_interval_hours = max(1, interval)
-            settings_obj.save(update_fields=["auto_sync_enabled", "auto_sync_interval_hours"])
-            messages.success(request, "Automatic sync settings saved.")
+        result, error = run_team_ado_sync(settings_obj)
+        if error:
+            ado_error = error
+        else:
+            _flash_import_result(request, result)
             return redirect("team-analysis")
 
     else:
@@ -615,6 +599,39 @@ def analysis_home(request):
             "summary": _analysis_summary(),
         },
     )
+
+
+def admin_settings(request):
+    if not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path())
+    if not request.user.is_staff:
+        raise PermissionDenied("Admin settings are staff-only.")
+
+    settings_obj = AzureDevOpsSettings.load()
+
+    if request.method == "POST":
+        if request.POST.get("action") == "sync_now":
+            result, error = run_team_ado_sync(settings_obj)
+            if error:
+                messages.error(request, f"Sync failed: {error}")
+            else:
+                _flash_import_result(request, result)
+            return redirect("admin-settings")
+
+        settings_obj.organization_url = request.POST.get("organization_url", "").strip()
+        settings_obj.personal_access_token = request.POST.get("personal_access_token", "").strip()
+        settings_obj.team_query_url = request.POST.get("team_query_url", "").strip()
+        settings_obj.auto_sync_enabled = bool(request.POST.get("auto_sync_enabled"))
+        try:
+            interval = int(request.POST.get("auto_sync_interval_hours", "24"))
+        except ValueError:
+            interval = 24
+        settings_obj.auto_sync_interval_hours = max(1, interval)
+        settings_obj.save()
+        messages.success(request, "Settings saved.")
+        return redirect("admin-settings")
+
+    return render(request, "teams/admin_settings.html", {"settings_obj": settings_obj})
 
 
 @login_required
