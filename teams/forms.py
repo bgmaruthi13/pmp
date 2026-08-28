@@ -34,8 +34,9 @@ class EmployeeForm(forms.ModelForm):
 class EmployeeNoteForm(forms.ModelForm):
     class Meta:
         model = EmployeeNote
-        fields = ["date", "description"]
+        fields = ["date", "description", "work_item_ref"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
             "description": forms.Textarea(attrs={"rows": 2}),
+            "work_item_ref": forms.TextInput(attrs={"placeholder": "e.g. US-4231 or a link to the ticket"}),
         }

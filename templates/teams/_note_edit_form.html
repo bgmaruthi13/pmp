@@ -2,6 +2,7 @@
 <form method="post" action="{% url 'employee-note-edit' employee.pk category note.pk %}" onsubmit="return notesAjaxSubmit(event);">
     {% csrf_token %}
     <p>{{ form.date.label_tag }}{{ form.date }}</p>
+    <p>{{ form.work_item_ref.label_tag }}{{ form.work_item_ref }}</p>
     <p>{{ form.description.label_tag }}{{ form.description }}</p>
     {% if form.errors %}<p style="color:#c0392b;">A description is required.</p>{% endif %}
     <p>

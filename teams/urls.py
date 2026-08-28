@@ -13,5 +13,15 @@ urlpatterns = [
     path("<int:pk>/notes/<str:category>/", views.employee_notes, name="employee-notes"),
     path("<int:pk>/notes/<str:category>/<int:note_id>/edit/", views.employee_note_edit, name="employee-note-edit"),
     path("<int:pk>/notes/<str:category>/<int:note_id>/delete/", views.employee_note_delete, name="employee-note-delete"),
+    path(
+        "<int:pk>/notes/<str:category>/<int:note_id>/attachments/",
+        views.employee_note_attachment_add,
+        name="employee-note-attachment-add",
+    ),
+    path(
+        "<int:pk>/notes/<str:category>/<int:note_id>/attachments/<int:attachment_id>/delete/",
+        views.employee_note_attachment_delete,
+        name="employee-note-attachment-delete",
+    ),
     path("<int:pk>/", views.employee_detail, name="employee-detail"),
 ]

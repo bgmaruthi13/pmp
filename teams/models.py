@@ -88,6 +88,12 @@ class EmployeeNote(models.Model):
     category = models.CharField(max_length=20, choices=Category.choices)
     date = models.DateField(null=True, blank=True)
     description = models.TextField()
+    work_item_ref = models.CharField(
+        "Linked user story / ticket",
+        max_length=300,
+        blank=True,
+        help_text="e.g. an Azure DevOps work item number, or a full link to the ticket.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -95,6 +101,28 @@ class EmployeeNote(models.Model):
 
     def __str__(self):
         return f"{self.get_category_display()}: {self.description[:40]}"
+
+    def work_item_is_link(self):
+        return self.work_item_ref.lower().startswith(("http://", "https://"))
+
+
+def employee_note_attachment_path(instance, filename):
+    return f"employee_notes/{instance.note.employee_id}/{instance.note_id}/{filename}"
+
+
+class EmployeeNoteAttachment(models.Model):
+    note = models.ForeignKey(EmployeeNote, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to=employee_note_attachment_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return self.filename()
+
+    def filename(self):
+        return self.file.name.rsplit("/", 1)[-1]
 
 
 class WorkItem(models.Model):

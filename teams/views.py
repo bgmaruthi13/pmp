@@ -16,7 +16,7 @@ from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
 from .forms import EmployeeForm, EmployeeNoteForm
-from .models import AzureDevOpsSettings, Employee, EmployeeNote, WorkItem
+from .models import AzureDevOpsSettings, Employee, EmployeeNote, EmployeeNoteAttachment, WorkItem
 
 NOTE_CATEGORY_LABELS = dict(EmployeeNote.Category.choices)
 
@@ -478,6 +478,39 @@ def employee_note_delete(request, pk, category, note_id):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
         note.delete()
+        return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+
+    return redirect("employee-notes", pk=pk, category=category)
+
+
+def employee_note_attachment_add(request, pk, category, note_id):
+    employee = get_object_or_404(Employee, pk=pk)
+    if category not in NOTE_CATEGORY_LABELS:
+        raise Http404("Unknown note category.")
+    note = get_object_or_404(EmployeeNote, pk=note_id, employee=employee, category=category)
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        for uploaded_file in request.FILES.getlist("file"):
+            EmployeeNoteAttachment.objects.create(note=note, file=uploaded_file)
+        return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+
+    return redirect("employee-notes", pk=pk, category=category)
+
+
+def employee_note_attachment_delete(request, pk, category, note_id, attachment_id):
+    employee = get_object_or_404(Employee, pk=pk)
+    if category not in NOTE_CATEGORY_LABELS:
+        raise Http404("Unknown note category.")
+    note = get_object_or_404(EmployeeNote, pk=note_id, employee=employee, category=category)
+    attachment = get_object_or_404(EmployeeNoteAttachment, pk=attachment_id, note=note)
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        attachment.file.delete(save=False)
+        attachment.delete()
         return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
 
     return redirect("employee-notes", pk=pk, category=category)

@@ -147,20 +147,21 @@ class Command(BaseCommand):
 
         # -- WFH exceptions / achievements / escalations (repeatable, dated logs) --
         notes_data = [
-            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2025, 11, 5), "Reduced OTP failure rate by 30%."),
-            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2026, 3, 18), "Shipped PAN validation caching layer ahead of schedule."),
-            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 3, 2), "P1 - Refund DB outage (resolved same day)."),
-            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 6, 21), "P2 - Slow query alert on reconciliation batch."),
-            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2025, 9, 1), "Approved - relocated to Pune."),
-            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2026, 4, 14), "Approved - extended for family care, 2 weeks."),
-            ("Karthik Subramaniam", EmployeeNote.Category.ACHIEVEMENT, date(2026, 8, 1), "SDQ Award nomination - SCHREMS project & NIST controls."),
+            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2025, 11, 5), "Reduced OTP failure rate by 30%.", "US-4102"),
+            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2026, 3, 18), "Shipped PAN validation caching layer ahead of schedule.", "US-4310"),
+            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 3, 2), "P1 - Refund DB outage (resolved same day).", "INC-1187"),
+            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 6, 21), "P2 - Slow query alert on reconciliation batch.", ""),
+            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2025, 9, 1), "Approved - relocated to Pune.", ""),
+            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2026, 4, 14), "Approved - extended for family care, 2 weeks.", ""),
+            ("Karthik Subramaniam", EmployeeNote.Category.ACHIEVEMENT, date(2026, 8, 1), "SDQ Award nomination - SCHREMS project & NIST controls.", "US-4498"),
         ]
-        for name, category, note_date, description in notes_data:
+        for name, category, note_date, description, work_item_ref in notes_data:
             EmployeeNote.objects.get_or_create(
                 employee=employees[name],
                 category=category,
                 date=note_date,
                 description=description,
+                defaults={"work_item_ref": work_item_ref},
             )
 
         # -- Areas ---------------------------------------------------------
