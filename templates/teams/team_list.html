@@ -2,6 +2,10 @@
 {% load team_extras %}
 {% block title %}Team · eSuvidha Ops Portal{% endblock %}
 {% block content %}
+    <div class="tabs">
+        <a href="{% url 'team-org' %}" class="active">Directory</a>
+        <a href="{% url 'team-efficiency' %}">Efficiency</a>
+    </div>
     {% if user.is_staff %}
         <p style="margin-top:0;">
             <a class="btn" href="{% url 'admin:teams_employee_import' %}">Import from Excel (Admin)</a>

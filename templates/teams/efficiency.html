@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Team Efficiency & Headcount Planning · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    <h1 style="margin-top:0;">Team Efficiency &amp; Headcount Planning</h1>
+    <div class="tabs">
+        <a href="{% url 'team-org' %}">Directory</a>
+        <a href="{% url 'team-efficiency' %}" class="active">Efficiency</a>
+    </div>
     <p style="color:var(--muted);max-width:760px;">
         RTB/GSC/AI efficiency % is set per line manager (falling back to the direct manager when no
         line manager is set) and applies to that manager's whole team &mdash; it isn't tracked per
