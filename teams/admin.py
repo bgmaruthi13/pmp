@@ -1,9 +1,10 @@
 import openpyxl
+from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path
 
-from .models import Employee
+from .models import AzureDevOpsSettings, Employee, WorkItem
 
 MAX_IMPORT_ROWS = 500
 
@@ -168,3 +169,35 @@ class EmployeeAdmin(admin.ModelAdmin):
             mapping=mapping,
         )
         return render(request, "admin/teams/employee/import_map.html", context)
+
+
+@admin.register(AzureDevOpsSettings)
+class AzureDevOpsSettingsAdmin(admin.ModelAdmin):
+    list_display = ("organization_url", "has_token")
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "personal_access_token":
+            kwargs["widget"] = forms.PasswordInput(render_value=True)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @admin.display(description="PAT configured", boolean=True)
+    def has_token(self, obj):
+        return bool(obj.personal_access_token)
+
+    def has_add_permission(self, request):
+        return not AzureDevOpsSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        obj = AzureDevOpsSettings.load()
+        return redirect("admin:teams_azuredevopssettings_change", obj.pk)
+
+
+@admin.register(WorkItem)
+class WorkItemAdmin(admin.ModelAdmin):
+    list_display = ("title", "employee", "source", "work_item_type", "state", "story_points", "closed_date")
+    list_filter = ("source", "work_item_type", "state")
+    search_fields = ("title", "external_id", "employee__name")
+    autocomplete_fields = ("employee",)

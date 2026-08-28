@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.name }} · Import Tickets{% endblock %}
+{% block content %}
+    <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
+    <h1>{{ employee.name }} &middot; Import Tickets</h1>
+    <p style="color:var(--muted);max-width:560px;">
+        Upload an .xlsx or .csv export of this person's tickets/user stories. On the next screen
+        you'll map its columns to Title, Type, State, Story Points, and more.
+    </p>
+    <form method="post" enctype="multipart/form-data" style="max-width:420px;">
+        {% csrf_token %}
+        <p>
+            <label for="file">File (.xlsx or .csv)</label>
+            <input type="file" name="file" id="file" accept=".xlsx,.csv" required>
+        </p>
+        <button class="btn" type="submit">Upload &amp; Continue</button>
+    </form>
+{% endblock %}

@@ -24,7 +24,12 @@
                     <td>{{ row.employee.get_role_display }}</td>
                     <td>{{ row.employee.manager.name|default:"—" }}</td>
                     <td>{{ row.employee.email|default:"—" }}</td>
-                    <td>{{ row.projects|join:", "|default:"—" }}</td>
+                    <td>
+                        {{ row.projects|join:", "|default:"—" }}
+                        <div class="work-links">
+                            <a href="#" onclick="openWorkAnalysis({{ row.employee.pk }}); return false;">Analysis</a><span class="sep">&middot;</span><a href="{% url 'employee-ado-sync' row.employee.pk %}">Azure DevOps</a><span class="sep">&middot;</span><a href="{% url 'employee-import-upload' row.employee.pk %}">Import File</a>
+                        </div>
+                    </td>
                     <td>{{ row.ticket_count }}</td>
                 </tr>
             {% empty %}

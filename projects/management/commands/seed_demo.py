@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
-from teams.models import Employee
+from teams.models import Employee, WorkItem
 
 
 class Command(BaseCommand):
@@ -163,6 +163,41 @@ class Command(BaseCommand):
             )
             if sys_names:
                 doc.systems.set([systems[n] for n in sys_names])
+
+        # -- Sample work item history (for the Team page's Analysis view) --
+        work_item_types = ["User Story", "Bug", "Task"]
+        states = ["Closed", "Closed", "Closed", "Active"]
+        sample_titles = [
+            "Fix OTP retry race condition",
+            "Add pagination to grievance list",
+            "Optimize nightly reconciliation job",
+            "Handle null PAN in e-KYC response",
+            "Refactor refund status polling",
+            "Add audit log for admin actions",
+            "Improve error messages on ITR upload",
+            "Cache Form 26AS lookups",
+            "Fix timezone bug in due-date display",
+            "Add retry queue for failed webhooks",
+        ]
+        for emp_name in ["Divya Menon", "Sanjay Iyer"]:
+            employee = employees[emp_name]
+            for i in range(10):
+                months_ago = 9 - i
+                closed = today.replace(day=1) - timedelta(days=months_ago * 30 - random.randint(0, 20))
+                WorkItem.objects.get_or_create(
+                    employee=employee,
+                    external_id=f"{1000 + i}",
+                    defaults={
+                        "source": WorkItem.Source.MANUAL,
+                        "title": sample_titles[i],
+                        "work_item_type": random.choice(work_item_types),
+                        "state": random.choice(states),
+                        "story_points": random.choice([1, 2, 3, 5, 8]),
+                        "project_label": "eSuvidha-Digital",
+                        "created_date": closed - timedelta(days=random.randint(3, 14)),
+                        "closed_date": closed,
+                    },
+                )
 
         self.stdout.write(self.style.SUCCESS("Seeded demo data (employees, projects, tickets, applications, transition plan)."))
         self.stdout.write(self.style.SUCCESS("Default login: admin / Admin@123 (demo only — change before any real deployment)."))
