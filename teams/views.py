@@ -1,7 +1,7 @@
 import csv
 import io
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
@@ -542,26 +542,7 @@ def _flash_import_result(request, result):
         messages.success(request, base)
 
 
-def _analysis_summary():
-    employees = Employee.objects.prefetch_related("work_items").order_by("name")
-    rows = []
-    total_items = 0
-    total_points = 0
-    for employee in employees:
-        items = list(employee.work_items.all())
-        if not items:
-            continue
-        points = sum((i.story_points or 0) for i in items)
-        rows.append({"employee": employee, "item_count": len(items), "points": points})
-        total_items += len(items)
-        total_points += points
-    rows.sort(key=lambda r: -r["item_count"])
-    return {
-        "rows": rows,
-        "total_items": total_items,
-        "total_points": total_points,
-        "employee_count": len(rows),
-    }
+MONTH_RANGE_OPTIONS = list(range(1, 13))
 
 
 def _bar_series(counter):
@@ -572,51 +553,181 @@ def _bar_series(counter):
     ]
 
 
-def _team_analysis_charts():
-    items = list(WorkItem.objects.select_related("employee"))
-    by_developer = Counter()
-    by_country = Counter()
+def _heat_level(count, max_count):
+    if not count:
+        return 0
+    if not max_count:
+        return 0
+    pct = count / max_count
+    if pct >= 0.75:
+        return 4
+    if pct >= 0.5:
+        return 3
+    if pct >= 0.25:
+        return 2
+    return 1
+
+
+def _month_matrix(counts_by_row, months_columns):
+    all_counts = [c for row in counts_by_row.values() for c in row.values()]
+    max_count = max(all_counts, default=0)
+    rows = []
+    for label, month_counts in counts_by_row.items():
+        cells = [
+            {"count": month_counts.get(month, 0), "level": _heat_level(month_counts.get(month, 0), max_count)}
+            for month in months_columns
+        ]
+        rows.append({"label": label, "total": sum(month_counts.values()), "cells": cells})
+    rows.sort(key=lambda r: -r["total"])
+    return rows
+
+
+def _parse_month_filter(request):
+    raw = request.GET.get("months", "").strip()
+    try:
+        months = int(raw)
+    except ValueError:
+        return None
+    return months if months in MONTH_RANGE_OPTIONS else None
+
+
+def _months_cutoff(months):
+    if not months:
+        return None
+    today = timezone.localdate()
+    year, month = today.year, today.month - (months - 1)
+    while month <= 0:
+        month += 12
+        year -= 1
+    return date(year, month, 1)
+
+
+def _team_analysis_data(request):
+    """Filter WorkItems by the months/developer/country query params and build every
+    aggregate the Analysis page needs (bar charts, monthly heatmaps, prompt) from that
+    single filtered set, so everything on the page reflects the same selection."""
+    months = _parse_month_filter(request)
+    cutoff = _months_cutoff(months)
+    developer_ids = request.GET.getlist("developer")
+    countries = request.GET.getlist("country")
+
+    all_employee_items = (
+        Employee.objects.filter(work_items__isnull=False).distinct().prefetch_related("work_items").order_by("name")
+    )
+    filter_employees = list(all_employee_items)
+    filter_countries = sorted({e.country or "Unspecified" for e in filter_employees})
+
+    items = []
+    for employee in filter_employees:
+        if developer_ids and str(employee.pk) not in developer_ids:
+            continue
+        emp_country = employee.country or "Unspecified"
+        if countries and emp_country not in countries:
+            continue
+        for item in employee.work_items.all():
+            d = item.closed_date or item.created_date
+            if cutoff and (not d or d < cutoff):
+                continue
+            items.append(item)
+
+    by_developer_count = Counter()
+    by_country_count = Counter()
     by_type = Counter()
     monthly = Counter()
+    dev_month_counts = {}
+    country_month_counts = {}
+    rows_by_employee = {}
+    total_points = 0
+
     for item in items:
-        by_developer[item.employee.name] += 1
-        by_country[item.employee.country or "Unspecified"] += 1
+        employee = item.employee
+        emp_country = employee.country or "Unspecified"
+        by_developer_count[employee.name] += 1
+        by_country_count[emp_country] += 1
         by_type[item.work_item_type or "Unspecified"] += 1
+        points = item.story_points or 0
+        total_points += points
+
+        row = rows_by_employee.setdefault(employee.pk, {"employee": employee, "item_count": 0, "points": 0})
+        row["item_count"] += 1
+        row["points"] += points
+
         d = item.closed_date or item.created_date
         if d:
-            monthly[d.strftime("%Y-%m")] += 1
+            month = d.strftime("%Y-%m")
+            monthly[month] += 1
+            dev_month_counts.setdefault(employee.name, Counter())[month] += 1
+            country_month_counts.setdefault(emp_country, Counter())[month] += 1
 
+    months_columns = sorted(monthly.keys())
     max_monthly = max(monthly.values(), default=0)
     monthly_series = [
         {"month": month, "count": count, "pct": round(count / max_monthly * 100) if max_monthly else 0}
         for month, count in sorted(monthly.items())
     ]
 
+    summary_rows = sorted(rows_by_employee.values(), key=lambda r: -r["item_count"])
+
     return {
         "items": items,
-        "by_developer": _bar_series(by_developer),
-        "by_country": _bar_series(by_country),
-        "by_type": by_type.most_common(),
-        "monthly_series": monthly_series,
+        "summary": {
+            "rows": summary_rows,
+            "total_items": len(items),
+            "total_points": total_points,
+            "employee_count": len(summary_rows),
+        },
+        "charts": {
+            "by_developer": _bar_series(by_developer_count),
+            "by_country": _bar_series(by_country_count),
+            "by_type": by_type.most_common(),
+            "monthly_series": monthly_series,
+        },
+        "months_columns": months_columns,
+        "developer_matrix": _month_matrix(dev_month_counts, months_columns),
+        "country_matrix": _month_matrix(country_month_counts, months_columns),
+        "filters": {
+            "month_options": MONTH_RANGE_OPTIONS,
+            "selected_months": months,
+            "filter_employees": filter_employees,
+            "selected_developer_ids": developer_ids,
+            "filter_countries": filter_countries,
+            "selected_countries": countries,
+            "active": bool(months or developer_ids or countries),
+        },
     }
 
 
-def _build_team_analysis_prompt(charts, total_items, total_points):
+def _build_team_analysis_prompt(data):
+    summary = data["summary"]
+    charts = data["charts"]
+    total_items = summary["total_items"]
     if not total_items:
         return (
-            "No user stories are on file yet for the team. Sync from Azure DevOps or import an "
-            "Excel/CSV file on the Analysis tab, then reopen this prompt."
+            "No user stories are on file yet for the current filter. Sync from Azure DevOps or "
+            "import an Excel/CSV file on the Configuration tab, then reopen this prompt."
         )
+
+    filters = data["filters"]
+    scope_bits = []
+    if filters["selected_months"]:
+        scope_bits.append(f"the last {filters['selected_months']} month(s)")
+    if filters["selected_developer_ids"]:
+        names = [e.name for e in filters["filter_employees"] if str(e.pk) in filters["selected_developer_ids"]]
+        scope_bits.append(f"developers: {', '.join(names)}")
+    if filters["selected_countries"]:
+        scope_bits.append(f"countries: {', '.join(filters['selected_countries'])}")
+    scope_line = f"Scope: {'; '.join(scope_bits)}.\n\n" if scope_bits else ""
 
     dev_lines = "\n".join(f"- {d['label']}: {d['count']}" for d in charts["by_developer"])
     country_lines = "\n".join(f"- {c['label']}: {c['count']}" for c in charts["by_country"])
     type_lines = "\n".join(f"- {t}: {c}" for t, c in charts["by_type"])
     monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in charts["monthly_series"])
-    sample_titles = "\n".join(f"- [{i.work_item_type or 'Item'}] {i.title}" for i in charts["items"][:40])
+    sample_titles = "\n".join(f"- [{i.work_item_type or 'Item'}] {i.title}" for i in data["items"][:40])
 
     return (
+        f"{scope_line}"
         f"Analyze this team's delivery history based on {total_items} tracked user stories/tickets "
-        f"totalling {total_points or 0} story points.\n\n"
+        f"totalling {summary['total_points'] or 0} story points.\n\n"
         f"By developer:\n{dev_lines}\n\n"
         f"By country:\n{country_lines}\n\n"
         f"By type:\n{type_lines}\n\n"
@@ -640,15 +751,18 @@ def analysis_home(request):
     if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
         run_team_ado_sync(settings_obj)
 
-    summary = _analysis_summary()
-    charts = _team_analysis_charts()
+    data = _team_analysis_data(request)
     return render(
         request,
         "teams/analysis.html",
         {
-            "summary": summary,
-            "charts": charts,
-            "prompt": _build_team_analysis_prompt(charts, summary["total_items"], summary["total_points"]),
+            "summary": data["summary"],
+            "charts": data["charts"],
+            "months_columns": data["months_columns"],
+            "developer_matrix": data["developer_matrix"],
+            "country_matrix": data["country_matrix"],
+            "filters": data["filters"],
+            "prompt": _build_team_analysis_prompt(data),
         },
     )
 

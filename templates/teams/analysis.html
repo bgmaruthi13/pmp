@@ -13,6 +13,48 @@
         {% if user.is_staff %}Manage data sources on the <a href="{% url 'admin-settings' %}">Configuration</a> tab.{% endif %}
     </p>
 
+    {% if filters.filter_employees %}
+        <form method="get" class="column" style="margin-bottom:1.25rem;">
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-end;">
+                <p style="margin:0;">
+                    <label for="months">Date range</label>
+                    <select name="months" id="months" style="width:auto;min-width:150px;">
+                        <option value="">All time</option>
+                        {% for n in filters.month_options %}
+                            <option value="{{ n }}" {% if n == filters.selected_months %}selected{% endif %}>Last {{ n }} month{{ n|pluralize }}</option>
+                        {% endfor %}
+                    </select>
+                </p>
+                <p style="margin:0;">
+                    <label for="developer">Developers</label>
+                    <select name="developer" id="developer" multiple size="5" style="width:auto;min-width:190px;">
+                        {% for emp in filters.filter_employees %}
+                            <option value="{{ emp.pk }}" {% if emp.pk|stringformat:"s" in filters.selected_developer_ids %}selected{% endif %}>{{ emp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </p>
+                <p style="margin:0;">
+                    <label for="country">Countries</label>
+                    <select name="country" id="country" multiple size="5" style="width:auto;min-width:160px;">
+                        {% for c in filters.filter_countries %}
+                            <option value="{{ c }}" {% if c in filters.selected_countries %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </p>
+                <p style="margin:0;">
+                    <button class="btn" type="submit">Apply Filters</button>
+                    {% if filters.active %}
+                        <a class="btn" href="{% url 'team-analysis' %}" style="background:#8a97a6;">Clear</a>
+                    {% endif %}
+                </p>
+            </div>
+            <p style="color:var(--muted);font-size:0.78rem;margin:0.6rem 0 0;">
+                Hold Ctrl/Cmd (or Shift for a range) to select multiple developers or countries.
+                Leaving a filter empty includes everyone.
+            </p>
+        </form>
+    {% endif %}
+
     <div class="stat-row">
         <div class="stat-tile"><div class="stat-value">{{ summary.total_items }}</div><div class="stat-label">Work items</div></div>
         <div class="stat-tile"><div class="stat-value">{{ summary.total_points|default:"0" }}</div><div class="stat-label">Story points</div></div>
@@ -61,6 +103,60 @@
         </div>
 
         <div class="column" style="margin-top:1.25rem;">
+            <h3 style="margin-top:0;margin-bottom:0.2rem;">Monthly Trend by Developer</h3>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:0;">Darker cells mean more tickets closed/created that month.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Developer</th>
+                            {% for m in months_columns %}<th style="white-space:nowrap;text-align:center;">{{ m }}</th>{% endfor %}
+                            <th style="text-align:center;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in developer_matrix %}
+                            <tr>
+                                <td style="white-space:nowrap;">{{ row.label }}</td>
+                                {% for cell in row.cells %}
+                                    <td class="heat-{{ cell.level }}" style="text-align:center;">{% if cell.count %}{{ cell.count }}{% endif %}</td>
+                                {% endfor %}
+                                <td style="text-align:center;font-weight:600;">{{ row.total }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="column" style="margin-top:1.25rem;">
+            <h3 style="margin-top:0;margin-bottom:0.2rem;">Monthly Trend by Country</h3>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:0;">Darker cells mean more tickets closed/created that month.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            {% for m in months_columns %}<th style="white-space:nowrap;text-align:center;">{{ m }}</th>{% endfor %}
+                            <th style="text-align:center;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in country_matrix %}
+                            <tr>
+                                <td style="white-space:nowrap;">{{ row.label }}</td>
+                                {% for cell in row.cells %}
+                                    <td class="heat-{{ cell.level }}" style="text-align:center;">{% if cell.count %}{{ cell.count }}{% endif %}</td>
+                                {% endfor %}
+                                <td style="text-align:center;font-weight:600;">{{ row.total }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="column" style="margin-top:1.25rem;">
             <h3 style="margin-top:0;margin-bottom:0.6rem;">Per-Person Breakdown</h3>
             <div class="table-wrap">
                 <table>
@@ -91,13 +187,18 @@
             <p style="color:var(--muted);font-size:0.85rem;margin-top:0;">
                 Copy this into M365 Copilot (or any LLM chat) to get a written analysis of the
                 team's delivery trend, the mix of user story types, how work is spread across
-                countries and developers, and the important subjects being worked on.
+                countries and developers, and the important subjects being worked on. Reflects the
+                filters above, if any are set.
             </p>
             <textarea id="team-analysis-prompt" readonly rows="8" style="font-family:ui-monospace,Consolas,monospace;font-size:0.78rem;">{{ prompt }}</textarea>
             <p style="margin-bottom:0;">
                 <button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('team-analysis-prompt').value)">Copy Prompt</button>
             </p>
         </div>
+    {% elif filters.active %}
+        <p style="color:var(--muted);margin-top:1rem;">
+            No user stories match the current filters. <a href="{% url 'team-analysis' %}">Clear filters</a> to see everything.
+        </p>
     {% else %}
         <p style="color:var(--muted);margin-top:1rem;">
             No work items imported yet.
