@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Team Efficiency & Headcount Planning · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
+    <h1>Team Efficiency &amp; Headcount Planning</h1>
+    <p style="color:var(--muted);max-width:720px;">
+        Grouped by line manager (falling back to direct manager when no line manager is set).
+        Blended % averages each person's RTB/GSC/AI efficiency fields. Work items and points are
+        pulled from their actual tracked tickets, so you can compare claimed efficiency against
+        real delivery. Adjust the target % in each team's calculator to see the projected headcount
+        instantly &mdash; nothing is saved.
+    </p>
+
+    {% for group in groups %}
+        <div class="org-role">
+            <h3>
+                {% if group.manager %}
+                    Team under <a href="{{ group.manager.get_absolute_url }}">{{ group.manager.name }}</a>
+                {% else %}
+                    Unassigned (no manager or line manager set)
+                {% endif %}
+                <small style="font-weight:400;color:var(--muted);">({{ group.team_size }} member{{ group.team_size|pluralize }})</small>
+            </h3>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Designation</th>
+                            <th>RTB %</th>
+                            <th>GSC %</th>
+                            <th>AI %</th>
+                            <th>Blended %</th>
+                            <th>Work Items</th>
+                            <th>Story Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in group.rows %}
+                            <tr>
+                                <td><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
+                                <td>{{ row.employee.designation|default:"—" }}</td>
+                                <td>{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
+                                <td>{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
+                                <td>{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
+                                <td>{% if row.blended is not None %}<span class="pill info">{{ row.blended }}%</span>{% else %}—{% endif %}</td>
+                                <td>{{ row.item_count }}</td>
+                                <td>{{ row.points }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="stat-row" style="align-items:flex-end;">
+                <div class="stat-tile"><div class="stat-value">{{ group.team_size }}</div><div class="stat-label">Current headcount</div></div>
+                <div class="stat-tile"><div class="stat-value">{{ group.avg_blended|default:"—" }}{% if group.avg_blended is not None %}%{% endif %}</div><div class="stat-label">Avg. blended efficiency</div></div>
+                <div class="stat-tile">
+                    <label for="target-{{ forloop.counter }}" style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">Target efficiency gain %</label>
+                    <input
+                        type="number" step="0.1" min="0" max="100"
+                        id="target-{{ forloop.counter }}"
+                        value="{{ group.avg_blended|default:0 }}"
+                        style="width:110px;"
+                        oninput="recalcHeadcount({{ group.team_size }}, 'target-{{ forloop.counter }}', 'projected-{{ forloop.counter }}')"
+                    >
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-value" id="projected-{{ forloop.counter }}">{{ group.team_size }}</div>
+                    <div class="stat-label">Projected headcount</div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>No team members yet.</p>
+    {% endfor %}
+
+    <script>
+        function recalcHeadcount(teamSize, inputId, outputId) {
+            var pct = parseFloat(document.getElementById(inputId).value);
+            if (isNaN(pct) || pct < 0) { pct = 0; }
+            var reduction = Math.floor(teamSize * pct / 100);
+            var projected = teamSize - reduction;
+            if (teamSize > 0 && projected < 1) { projected = 1; }
+            document.getElementById(outputId).textContent = projected + ' (−' + reduction + ', ' + pct.toFixed(1) + '%)';
+        }
+        {% for group in groups %}
+            recalcHeadcount({{ group.team_size }}, 'target-{{ forloop.counter }}', 'projected-{{ forloop.counter }}');
+        {% endfor %}
+    </script>
+{% endblock %}

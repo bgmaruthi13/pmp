@@ -50,6 +50,57 @@ def team_list(request):
     return render(request, "teams/team_list.html", {"rows": rows})
 
 
+def _blended_efficiency(employee):
+    values = [v for v in [employee.rtb_efficiency, employee.gsc_efficiency, employee.ai_efficiency] if v is not None]
+    if not values:
+        return None
+    return round(sum(values) / len(values), 2)
+
+
+def team_efficiency(request):
+    employees = Employee.objects.select_related("manager", "line_manager").prefetch_related("work_items")
+
+    groups = {}
+    for employee in employees:
+        lead = employee.line_manager or employee.manager
+        key = lead.pk if lead else 0
+        group = groups.setdefault(key, {"manager": lead, "members": []})
+        group["members"].append(employee)
+
+    result_groups = []
+    for group in groups.values():
+        members = group["members"]
+        rows = []
+        blended_values = []
+        for employee in members:
+            items = list(employee.work_items.all())
+            blended = _blended_efficiency(employee)
+            if blended is not None:
+                blended_values.append(blended)
+            rows.append(
+                {
+                    "employee": employee,
+                    "blended": blended,
+                    "item_count": len(items),
+                    "points": sum((i.story_points or 0) for i in items),
+                }
+            )
+        rows.sort(key=lambda r: r["employee"].name)
+        avg_blended = round(sum(blended_values) / len(blended_values), 2) if blended_values else None
+
+        result_groups.append(
+            {
+                "manager": group["manager"],
+                "rows": rows,
+                "team_size": len(members),
+                "avg_blended": avg_blended,
+            }
+        )
+
+    result_groups.sort(key=lambda g: (g["manager"] is None, g["manager"].name if g["manager"] else ""))
+    return render(request, "teams/efficiency.html", {"groups": result_groups})
+
+
 @login_required
 def employee_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
