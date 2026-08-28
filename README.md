@@ -7,17 +7,21 @@ affiliated with or a copy of any real government site).
 
 ## Features
 
-- **Team** — org chart of employees by role (Project Lead, Platform
-  Engineer Lead, Platform/Database Engineers, DevOps, SDM), with reporting
-  lines and per-person ticket counts
-- **Projects** — kanban board per project (To Do / In Progress / Done)
-- **Ticket Tracker** — planned + ad hoc tickets across all projects, with
-  auto-numbered ticket IDs, area, assignee/assigned-by, target date, SDM
-  attention flag, status, and remarks
-- **Application Inventory** — application/service registry with
-  sensitivity, ownership, and procurement metadata
-- **Transition Plan** — a project-transition document checklist with
-  per-integration-system coverage
+Every list view is a full-column table; clicking a row's name/ID opens a
+detail page with everything about that record.
+
+- **Team** (home page) — every member as a flat table (name, role, manager,
+  email, projects, ticket count); click a name for role, manager, direct
+  reports, projects, and their full ticket list
+- **Projects** — table of all projects (lead, created date, ticket counts by
+  status); click through to a kanban board (To Do / In Progress / Done)
+- **Ticket Tracker** — planned + ad hoc tickets across all projects
+  (auto-numbered ticket IDs, area, assignee/assigned-by, target date, SDM
+  attention flag, status, remarks); click a ticket for its full detail page
+- **Application Inventory** — application/service registry (sensitivity,
+  ownership, procurement metadata); click an app for its full detail page
+- **Transition Plan** — project-transition document checklist with
+  per-integration-system coverage; click a document for its full detail page
 - Django admin for managing everything
 
 ## Setup
@@ -28,17 +32,24 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 python manage.py migrate
-python manage.py createsuperuser
-python manage.py seed_demo   # optional: realistic fictitious demo data
+python manage.py seed_demo   # demo data + default login (see below)
 python manage.py runserver
 ```
 
-Visit `http://127.0.0.1:8000/` for the project list, or `/admin/` for the admin site.
+Visit `http://127.0.0.1:8000/` for the Team page (home), or `/admin/` for
+the admin site.
 
 `seed_demo` (in `projects/management/commands/`) populates the app with
 made-up employees, projects, tickets, applications, and transition
 documents themed around a fictitious income-tax e-filing platform — no
-real organizational data.
+real organizational data — and creates a default login:
+
+- **Username:** `admin`
+- **Password:** `Admin@123`
+
+This is a demo-only credential seeded for convenience. Change it (or skip
+`seed_demo` and run `python manage.py createsuperuser` instead) before any
+real deployment.
 
 ## Project structure
 
@@ -69,10 +80,9 @@ same settings work in dev and production.
      `RENDER_EXTERNAL_HOSTNAME` (set automatically by Render) is added to
      `ALLOWED_HOSTS` in `config/settings.py`.
 
-3. Once deployed, create an admin user from the Render shell:
-   ```bash
-   python manage.py createsuperuser
-   ```
+3. Once deployed, create an admin user from the Render shell — either
+   `python manage.py createsuperuser`, or `python manage.py seed_demo` for
+   demo data plus the `admin` / `Admin@123` login described above.
 
 Static files are served by WhiteNoise (`config/settings.py`), so no separate
 static host is needed.

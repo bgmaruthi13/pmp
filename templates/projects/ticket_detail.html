@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.ticket_id }} · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <p><a href="{% url 'ticket-tracker' %}">&larr; Back to Ticket Tracker</a></p>
+    <h1>{{ ticket.ticket_id }} · {{ ticket.title }}</h1>
+    {% if user.is_authenticated %}
+        <p><a class="btn" href="{% url 'task-update' ticket.pk %}">Edit ticket</a></p>
+    {% endif %}
+    <div class="table-wrap" style="max-width: 600px;">
+    <table>
+        <tbody>
+            <tr><th>Description</th><td>{{ ticket.description|default:"—" }}</td></tr>
+            <tr><th>Project</th><td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.project.name }}</a></td></tr>
+            <tr><th>Area</th><td>{{ ticket.area|default:"—" }}</td></tr>
+            <tr><th>Type</th><td>{{ ticket.get_ticket_type_display }}</td></tr>
+            <tr><th>Status</th><td>{{ ticket.get_status_display }}</td></tr>
+            <tr>
+                <th>Assigned By</th>
+                <td>{% if ticket.assigned_by %}<a href="{{ ticket.assigned_by.get_absolute_url }}">{{ ticket.assigned_by.name }}</a>{% else %}—{% endif %}</td>
+            </tr>
+            <tr>
+                <th>Assigned To</th>
+                <td>{% if ticket.assignee %}<a href="{{ ticket.assignee.get_absolute_url }}">{{ ticket.assignee.name }}</a>{% else %}—{% endif %}</td>
+            </tr>
+            <tr><th>Target Date</th><td>{{ ticket.due_date|default:"—" }}</td></tr>
+            <tr><th>SDM Attention</th><td>{% if ticket.sdm_attention %}<span class="pill sdm">Yes</span>{% else %}No{% endif %}</td></tr>
+            <tr><th>Remarks</th><td>{{ ticket.remarks|default:"—" }}</td></tr>
+            <tr><th>Created</th><td>{{ ticket.created_at|date:"d M Y, H:i" }}</td></tr>
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

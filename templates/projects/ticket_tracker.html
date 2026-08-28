@@ -27,9 +27,9 @@
         <tbody>
             {% for ticket in tickets %}
                 <tr>
-                    <td>{{ ticket.ticket_id }}</td>
-                    <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.title }}</a></td>
-                    <td>{{ ticket.project.name }}</td>
+                    <td><a href="{{ ticket.get_absolute_url }}">{{ ticket.ticket_id }}</a></td>
+                    <td><a href="{{ ticket.get_absolute_url }}">{{ ticket.title }}</a></td>
+                    <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.project.name }}</a></td>
                     <td>{{ ticket.area|default:"—" }}</td>
                     <td>{{ ticket.get_ticket_type_display }}</td>
                     <td>{{ ticket.assigned_by.name|default:"—" }}</td>

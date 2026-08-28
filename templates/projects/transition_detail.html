@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ document.document }} · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <p><a href="{% url 'transition-list' %}">&larr; Back to Transition Plan</a></p>
+    <h1>{{ document.document }}</h1>
+    <div class="table-wrap" style="max-width: 600px;">
+    <table>
+        <tbody>
+            <tr><th>Category</th><td>{{ document.category }}</td></tr>
+            <tr><th>Purpose</th><td>{{ document.purpose|default:"—" }}</td></tr>
+            <tr><th>Owner</th><td>{{ document.owner|default:"—" }}</td></tr>
+            <tr>
+                <th>Systems Covered</th>
+                <td>
+                    {% for system in document.systems.all %}
+                        {{ system.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}—{% endfor %}
+                </td>
+            </tr>
+            <tr><th>Comments</th><td>{{ document.comments|default:"—" }}</td></tr>
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

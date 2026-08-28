@@ -5,14 +5,36 @@
     {% if user.is_authenticated %}
         <p><a class="btn" href="{% url 'project-create' %}">+ New project</a></p>
     {% endif %}
-    <ul class="project-list">
-        {% for project in projects %}
-            <li>
-                <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
-                <div><small>{{ project.tasks.count }} ticket{{ project.tasks.count|pluralize }}{% if project.lead %} · Lead: {{ project.lead.name }}{% endif %}</small></div>
-            </li>
-        {% empty %}
-            <li>No projects yet.</li>
-        {% endfor %}
-    </ul>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Description</th>
+                <th>Lead</th>
+                <th>Created</th>
+                <th>To Do</th>
+                <th>In Progress</th>
+                <th>Done</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+                <tr>
+                    <td><a href="{{ project.get_absolute_url }}">{{ project.name }}</a></td>
+                    <td>{{ project.description|default:"—" }}</td>
+                    <td>{% if project.lead %}<a href="{{ project.lead.get_absolute_url }}">{{ project.lead.name }}</a>{% else %}—{% endif %}</td>
+                    <td>{{ project.created_at|date:"d M Y" }}</td>
+                    <td>{{ project.todo_count }}</td>
+                    <td>{{ project.in_progress_count }}</td>
+                    <td>{{ project.done_count }}</td>
+                    <td>{{ project.ticket_count }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8">No projects yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
 {% endblock %}

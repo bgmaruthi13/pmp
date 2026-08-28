@@ -20,7 +20,7 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ doc.category }}</td>
-                    <td>{{ doc.document }}</td>
+                    <td><a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a></td>
                     <td>{{ doc.purpose }}</td>
                     <td>{{ doc.owner|default:"—" }}</td>
                     {% for system in systems %}

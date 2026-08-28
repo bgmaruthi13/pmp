@@ -24,7 +24,7 @@
             {% for app in applications %}
                 <tr>
                     <td><small>{{ app.global_id }}</small></td>
-                    <td>{{ app.name }}</td>
+                    <td><a href="{{ app.get_absolute_url }}">{{ app.name }}</a></td>
                     <td>{{ app.get_sensitivity_display }}</td>
                     <td>{{ app.architecture_container }}</td>
                     <td>{{ app.gsc_owner|default:"—" }}</td>

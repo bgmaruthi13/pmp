@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ application.name }} · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <p><a href="{% url 'application-list' %}">&larr; Back to Application Inventory</a></p>
+    <h1>{{ application.name }}</h1>
+    <div class="table-wrap" style="max-width: 600px;">
+    <table>
+        <tbody>
+            <tr><th>Global ID</th><td><small>{{ application.global_id }}</small></td></tr>
+            <tr><th>Sensitivity</th><td>{{ application.get_sensitivity_display }}</td></tr>
+            <tr><th>Architecture Container</th><td>{{ application.architecture_container|default:"—" }}</td></tr>
+            <tr><th>GSC Owner</th><td>{{ application.gsc_owner|default:"—" }}</td></tr>
+            <tr><th>IT Perimeter lvl2</th><td>{{ application.it_perimeter_lvl2|default:"—" }}</td></tr>
+            <tr><th>IT Perimeter lvl3</th><td>{{ application.it_perimeter_lvl3|default:"—" }}</td></tr>
+            <tr><th>Object Type</th><td>{{ application.get_object_type_display }}</td></tr>
+            <tr><th>Application Type</th><td>{{ application.get_application_type_display }}</td></tr>
+            <tr><th>Procurement Type</th><td>{{ application.get_procurement_type_display }}</td></tr>
+            <tr><th>Application Officer</th><td>{{ application.officer|default:"—" }}</td></tr>
+            <tr><th>Country</th><td>{{ application.country|default:"—" }}</td></tr>
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

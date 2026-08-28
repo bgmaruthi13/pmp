@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import ProjectForm, TaskForm
@@ -6,7 +7,12 @@ from .models import Application, Project, Task, TransitionDocument, TransitionSy
 
 
 def project_list(request):
-    projects = Project.objects.select_related("lead")
+    projects = Project.objects.select_related("lead").annotate(
+        todo_count=Count("tasks", filter=Q(tasks__status=Task.Status.TODO), distinct=True),
+        in_progress_count=Count("tasks", filter=Q(tasks__status=Task.Status.IN_PROGRESS), distinct=True),
+        done_count=Count("tasks", filter=Q(tasks__status=Task.Status.DONE), distinct=True),
+        ticket_count=Count("tasks", distinct=True),
+    )
     return render(request, "projects/project_list.html", {"projects": projects})
 
 
@@ -62,9 +68,21 @@ def ticket_tracker(request):
     )
 
 
+def ticket_detail(request, pk):
+    ticket = get_object_or_404(
+        Task.objects.select_related("project", "area", "assignee", "assigned_by"), pk=pk
+    )
+    return render(request, "projects/ticket_detail.html", {"ticket": ticket})
+
+
 def application_list(request):
     applications = Application.objects.all()
     return render(request, "projects/application_list.html", {"applications": applications})
+
+
+def application_detail(request, pk):
+    application = get_object_or_404(Application, pk=pk)
+    return render(request, "projects/application_detail.html", {"application": application})
 
 
 def transition_list(request):
@@ -75,3 +93,8 @@ def transition_list(request):
         "projects/transition_list.html",
         {"documents": documents, "systems": systems},
     )
+
+
+def transition_detail(request, pk):
+    document = get_object_or_404(TransitionDocument.objects.prefetch_related("systems"), pk=pk)
+    return render(request, "projects/transition_detail.html", {"document": document})

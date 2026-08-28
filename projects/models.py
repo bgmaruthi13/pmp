@@ -68,6 +68,9 @@ class Task(models.Model):
     def __str__(self):
         return f"{self.ticket_id} · {self.title}"
 
+    def get_absolute_url(self):
+        return reverse("ticket-detail", args=[self.pk])
+
     def save(self, *args, **kwargs):
         if not self.ticket_id:
             last = Task.objects.order_by("-id").first()
@@ -113,6 +116,9 @@ class Application(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse("application-detail", args=[self.pk])
+
 
 class TransitionSystem(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -138,3 +144,6 @@ class TransitionDocument(models.Model):
 
     def __str__(self):
         return self.document
+
+    def get_absolute_url(self):
+        return reverse("transition-detail", args=[self.pk])

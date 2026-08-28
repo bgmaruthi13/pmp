@@ -1,6 +1,7 @@
 import random
 from datetime import date, timedelta
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
@@ -13,6 +14,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         random.seed(42)
         today = date.today()
+
+        # -- Default login (demo only — change before any real deployment) --
+        admin_user, _ = User.objects.get_or_create(
+            username="admin", defaults={"email": "admin@example.com"}
+        )
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.set_password("Admin@123")
+        admin_user.save()
 
         # -- Team --------------------------------------------------------
         lead, _ = Employee.objects.get_or_create(
@@ -155,3 +165,4 @@ class Command(BaseCommand):
                 doc.systems.set([systems[n] for n in sys_names])
 
         self.stdout.write(self.style.SUCCESS("Seeded demo data (employees, projects, tickets, applications, transition plan)."))
+        self.stdout.write(self.style.SUCCESS("Default login: admin / Admin@123 (demo only — change before any real deployment)."))
