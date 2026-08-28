@@ -191,6 +191,20 @@ class AzureDevOpsSettings(models.Model):
             "used by the Analysis tab. e.g. https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
         ),
     )
+    auto_sync_enabled = models.BooleanField(
+        "Automatically keep user stories in sync",
+        default=False,
+        help_text=(
+            "When on, the Analysis tab re-syncs itself in the background at most once per "
+            "interval below. python manage.py sync_azure_devops does the same sync and can be "
+            "wired up to an external daily cron for a more reliable schedule."
+        ),
+    )
+    auto_sync_interval_hours = models.PositiveIntegerField(default=24)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    last_sync_success = models.BooleanField(default=False)
+    last_sync_error = models.TextField(blank=True)
+    last_sync_item_count = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Azure DevOps settings"

@@ -19,6 +19,21 @@
     {% if ado_error %}
         <p class="pill danger">{{ ado_error }}</p>
     {% endif %}
+
+    {% if settings_obj.last_synced_at %}
+        <p>
+            {% if settings_obj.last_sync_success %}
+                <span class="pill success">Last synced {{ settings_obj.last_synced_at|timesince }} ago</span>
+                &mdash; {{ settings_obj.last_sync_item_count|default:"0" }} item(s) matched.
+            {% else %}
+                <span class="pill danger">Last sync attempt {{ settings_obj.last_synced_at|timesince }} ago failed</span>
+                &mdash; {{ settings_obj.last_sync_error }}
+            {% endif %}
+        </p>
+    {% else %}
+        <p style="color:var(--muted);">Never synced yet.</p>
+    {% endif %}
+
     {% if user.is_authenticated %}
         <form method="post" style="max-width:640px;margin-bottom:0.5rem;">
             {% csrf_token %}
@@ -30,12 +45,39 @@
                     placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
                 >
             </p>
-            <button class="btn" type="submit">Save &amp; Sync</button>
+            <button class="btn" type="submit">Save &amp; Sync Now</button>
         </form>
         <p style="color:var(--muted);font-size:0.82rem;max-width:640px;">
             Build a query in Azure DevOps returning every User Story you want tracked, across all
             assignees, then paste its shared link here. Re-running sync updates existing items and
             adds new ones by work item ID.
+        </p>
+
+        <form method="post" style="max-width:420px;margin-top:1rem;display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_auto_sync">
+            <p style="margin:0;">
+                <label style="display:flex;align-items:center;gap:0.4rem;font-weight:600;">
+                    <input type="checkbox" name="auto_sync_enabled" style="width:auto;" {% if settings_obj.auto_sync_enabled %}checked{% endif %}>
+                    Sync automatically
+                </label>
+            </p>
+            <p style="margin:0;">
+                <label for="auto_sync_interval_hours">Every</label>
+                <span style="display:inline-flex;align-items:center;gap:0.4rem;">
+                    <input type="number" min="1" name="auto_sync_interval_hours" id="auto_sync_interval_hours"
+                           value="{{ settings_obj.auto_sync_interval_hours }}" style="width:70px;">
+                    hours
+                </span>
+            </p>
+            <p style="margin:0;"><button class="btn" type="submit">Save</button></p>
+        </form>
+        <p style="color:var(--muted);font-size:0.78rem;max-width:640px;">
+            While automatic sync is on, opening this page re-syncs in the background once the
+            interval has passed &mdash; so it stays fresh without anyone remembering to click
+            &ldquo;Save &amp; Sync Now&rdquo;. For a schedule that doesn't depend on someone
+            visiting the page, point an external daily cron (Render Cron Job, GitHub Actions, etc.)
+            at <code>python manage.py sync_azure_devops</code> instead.
         </p>
     {% else %}
         <p><a href="{% url 'admin:login' %}?next={{ request.path }}">Log in</a> to configure and sync.</p>

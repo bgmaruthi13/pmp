@@ -1,7 +1,7 @@
 import csv
 import io
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
@@ -11,12 +11,14 @@ from django.contrib.auth.views import redirect_to_login
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
 from .forms import EmployeeForm, EmployeeNoteForm
 from .models import AzureDevOpsSettings, Employee, EmployeeNote, EmployeeNoteAttachment, WorkItem
+from .sync import import_team_work_items, run_team_ado_sync
 
 NOTE_CATEGORY_LABELS = dict(EmployeeNote.Category.choices)
 
@@ -523,57 +525,6 @@ def employee_note_attachment_delete(request, pk, category, note_id, attachment_i
     return redirect("employee-notes", pk=pk, category=category)
 
 
-def _employee_lookup_maps():
-    employees = list(Employee.objects.all())
-    by_email = {e.email.strip().lower(): e for e in employees if e.email}
-    by_name = {e.name.strip().lower(): e for e in employees}
-    return by_email, by_name
-
-
-def _match_employee(by_email, by_name, email="", name=""):
-    email = (email or "").strip().lower()
-    name = (name or "").strip().lower()
-    if email and email in by_email:
-        return by_email[email]
-    if name and name in by_name:
-        return by_name[name]
-    return None
-
-
-def _import_team_work_items(items, source, upsert):
-    """Match each item's assignee to an Employee and save it as a WorkItem.
-    upsert=True keeps at most one row per (employee, source, external_id) - safe for
-    Azure DevOps, which has stable IDs. upsert=False always inserts a new row - used
-    for Excel/CSV imports, whose rows may not carry a unique external_id."""
-    by_email, by_name = _employee_lookup_maps()
-    matched = 0
-    unmatched = []
-    employees_touched = set()
-
-    for raw_item in items:
-        item = dict(raw_item)
-        assigned_name = item.pop("assigned_to_name", "")
-        assigned_email = item.pop("assigned_to_email", "")
-        employee = _match_employee(by_email, by_name, assigned_email, assigned_name)
-        if not employee:
-            label = assigned_name or assigned_email or "(unassigned)"
-            unmatched.append(f"{label} — {item.get('title', '')[:40]}")
-            continue
-
-        item["assigned_to_raw"] = assigned_name or assigned_email
-        external_id = item.pop("external_id", "")
-        if upsert and external_id:
-            WorkItem.objects.update_or_create(
-                employee=employee, source=source, external_id=external_id, defaults=item
-            )
-        else:
-            WorkItem.objects.create(employee=employee, source=source, external_id=external_id, **item)
-        matched += 1
-        employees_touched.add(employee.pk)
-
-    return {"matched": matched, "unmatched": unmatched, "employee_count": len(employees_touched)}
-
-
 def _flash_import_result(request, result):
     if result["matched"] == 0 and not result["unmatched"]:
         messages.warning(request, "No user stories were found.")
@@ -620,24 +571,39 @@ def analysis_home(request):
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
 
-        if request.POST.get("action") == "ado_sync":
+        action = request.POST.get("action")
+        if action == "ado_sync":
             query_url = request.POST.get("query_url", "").strip()
             settings_obj.team_query_url = query_url
             settings_obj.save(update_fields=["team_query_url"])
 
-            if not query_url:
-                ado_error = "Add a query URL first."
-            elif not settings_obj.personal_access_token:
-                ado_error = "No shared PAT is configured. Ask an admin to set one under Admin > Teams > Azure DevOps settings."
+            result, error = run_team_ado_sync(settings_obj)
+            if error:
+                ado_error = error
             else:
-                try:
-                    fetched = fetch_work_items(query_url, settings_obj.personal_access_token)
-                except AzureDevOpsError as exc:
-                    ado_error = str(exc)
-                else:
-                    result = _import_team_work_items(fetched, source=WorkItem.Source.AZURE_DEVOPS, upsert=True)
-                    _flash_import_result(request, result)
-                    return redirect("team-analysis")
+                _flash_import_result(request, result)
+                return redirect("team-analysis")
+
+        elif action == "save_auto_sync":
+            settings_obj.auto_sync_enabled = bool(request.POST.get("auto_sync_enabled"))
+            try:
+                interval = int(request.POST.get("auto_sync_interval_hours", "24"))
+            except ValueError:
+                interval = 24
+            settings_obj.auto_sync_interval_hours = max(1, interval)
+            settings_obj.save(update_fields=["auto_sync_enabled", "auto_sync_interval_hours"])
+            messages.success(request, "Automatic sync settings saved.")
+            return redirect("team-analysis")
+
+    else:
+        due = (
+            settings_obj.last_synced_at is None
+            or timezone.now() - settings_obj.last_synced_at
+            >= timedelta(hours=settings_obj.auto_sync_interval_hours)
+        )
+        if settings_obj.auto_sync_enabled and settings_obj.team_query_url and settings_obj.personal_access_token and due:
+            run_team_ado_sync(settings_obj)
+            settings_obj.refresh_from_db()
 
     return render(
         request,
@@ -727,7 +693,7 @@ def analysis_import_map(request):
                 }
             )
 
-        result = _import_team_work_items(items, source=WorkItem.Source.EXCEL, upsert=False)
+        result = import_team_work_items(items, source=WorkItem.Source.EXCEL, upsert=False)
         del request.session["analysis_import_headers"]
         del request.session["analysis_import_rows"]
         _flash_import_result(request, result)
