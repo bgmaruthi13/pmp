@@ -145,5 +145,5 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "admin:login"
-LOGIN_REDIRECT_URL = "project-list"
-LOGOUT_REDIRECT_URL = "project-list"
+LOGIN_REDIRECT_URL = "team-org"
+LOGOUT_REDIRECT_URL = "team-org"

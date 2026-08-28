@@ -1,8 +1,37 @@
 {% extends "base.html" %}
 {% block title %}{{ employee.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
+    <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
     <h1>{{ employee.name }}</h1>
-    <p>{{ employee.get_role_display }}{% if employee.manager %} · Reports to {{ employee.manager.name }}{% endif %}</p>
+
+    <div class="table-wrap" style="max-width: 500px;">
+    <table>
+        <tbody>
+            <tr><th>Role</th><td>{{ employee.get_role_display }}</td></tr>
+            <tr>
+                <th>Manager</th>
+                <td>{% if employee.manager %}<a href="{{ employee.manager.get_absolute_url }}">{{ employee.manager.name }}</a>{% else %}—{% endif %}</td>
+            </tr>
+            <tr><th>Email</th><td>{{ employee.email|default:"—" }}</td></tr>
+            <tr>
+                <th>Direct Reports</th>
+                <td>
+                    {% for report in employee.reports.all %}
+                        <a href="{{ report.get_absolute_url }}">{{ report.name }}</a>{% if not forloop.last %}, {% endif %}
+                    {% empty %}—{% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <th>Projects</th>
+                <td>
+                    {% for project in projects %}
+                        <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>{% if not forloop.last %}, {% endif %}
+                    {% empty %}—{% endfor %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
 
     <h3>Assigned tickets</h3>
     <div class="table-wrap">
