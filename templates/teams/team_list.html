@@ -58,9 +58,9 @@
                             {% for project in row.projects %}{{ project.name }}{% if not forloop.last %}, {% endif %}{% empty %}Edit projects{% endfor %}
                         </a>
                     </td>
-                    <td>{{ row.employee.wfh_exceptions|default:"—" }}</td>
-                    <td>{{ row.employee.achievements|default:"—" }}</td>
-                    <td>{{ row.employee.escalations|default:"—" }}</td>
+                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'wfh_exception' %}'); return false;">View ({{ row.wfh_count }})</a></td>
+                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'achievement' %}'); return false;">View ({{ row.achievement_count }})</a></td>
+                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'escalation' %}'); return false;">View ({{ row.escalation_count }})</a></td>
                     <td>{{ row.employee.awards|default:"—" }}</td>
                     <td>{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
                     <td>{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
@@ -91,4 +91,29 @@
             }
         </script>
     {% endif %}
+
+    <dialog id="notes-modal" style="width:min(640px, 94vw); border:none; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:1.5rem;">
+        <div id="notes-content">Loading&hellip;</div>
+    </dialog>
+    <script>
+        function loadNotesContent(url) {
+            fetch(url)
+                .then(function (r) { return r.text(); })
+                .then(function (html) { document.getElementById('notes-content').innerHTML = html; })
+                .catch(function () { document.getElementById('notes-content').innerHTML = '<p>Could not load this data.</p>'; });
+        }
+        function openNotesModal(url) {
+            document.getElementById('notes-modal').showModal();
+            loadNotesContent(url);
+        }
+        function notesAjaxSubmit(event) {
+            event.preventDefault();
+            var form = event.target;
+            fetch(form.action, { method: 'POST', body: new FormData(form) })
+                .then(function (r) { return r.text(); })
+                .then(function (html) { document.getElementById('notes-content').innerHTML = html; })
+                .catch(function () { document.getElementById('notes-content').innerHTML = '<p>Could not save.</p>'; });
+            return false;
+        }
+    </script>
 {% endblock %}

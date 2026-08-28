@@ -1,0 +1,47 @@
+<h2 style="margin:0 0 0.25rem;color:var(--navy-dark);">{{ category_label }}</h2>
+<p style="color:var(--muted);font-size:0.85rem;margin:0 0 1rem;">{{ employee.name }} &middot; most recent first</p>
+
+<table style="width:100%;margin-bottom:1rem;">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Description</th>
+            {% if user.is_authenticated %}<th></th>{% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for note in notes %}
+            <tr>
+                <td style="white-space:nowrap;">{{ note.date|default:"—" }}</td>
+                <td>{{ note.description }}</td>
+                {% if user.is_authenticated %}
+                    <td style="white-space:nowrap;">
+                        <a href="#" onclick="loadNotesContent('{% url 'employee-note-edit' employee.pk category note.pk %}'); return false;">Edit</a>
+                        &middot;
+                        <form method="post" action="{% url 'employee-note-delete' employee.pk category note.pk %}" style="display:inline;" onsubmit="return confirm('Delete this entry?') &amp;&amp; notesAjaxSubmit(event);">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background:#c0392b;padding:0.15rem 0.5rem;font-size:0.8rem;">Delete</button>
+                        </form>
+                    </td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr><td colspan="3">No entries yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if user.is_authenticated %}
+    <h3 style="margin:0 0 0.5rem;font-size:0.95rem;color:var(--navy-dark);">Add new entry</h3>
+    <form method="post" action="{% url 'employee-notes' employee.pk category %}" onsubmit="return notesAjaxSubmit(event);">
+        {% csrf_token %}
+        <p>{{ form.date.label_tag }}{{ form.date }}</p>
+        <p>{{ form.description.label_tag }}{{ form.description }}</p>
+        {% if form.errors %}<p style="color:#c0392b;">A description is required.</p>{% endif %}
+        <p><button class="btn" type="submit">Add</button></p>
+    </form>
+{% endif %}
+
+<p style="margin-top:1rem;">
+    <button class="btn" type="button" style="background:#8a97a6;" onclick="document.getElementById('notes-modal').close()">Close</button>
+</p>

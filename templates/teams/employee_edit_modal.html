@@ -9,14 +9,15 @@
         <p>{{ form.manager.label_tag }}{{ form.manager }}</p>
         <p>{{ form.line_manager.label_tag }}{{ form.line_manager }}</p>
         <p>{{ form.doj.label_tag }}{{ form.doj }}</p>
-        <p>{{ form.wfh_exceptions.label_tag }}{{ form.wfh_exceptions }}</p>
         <p>{{ form.rtb_efficiency.label_tag }}{{ form.rtb_efficiency }}</p>
         <p>{{ form.gsc_efficiency.label_tag }}{{ form.gsc_efficiency }}</p>
         <p>{{ form.ai_efficiency.label_tag }}{{ form.ai_efficiency }}</p>
     </div>
-    <p>{{ form.achievements.label_tag }}{{ form.achievements }}</p>
-    <p>{{ form.escalations.label_tag }}{{ form.escalations }}</p>
     <p>{{ form.awards.label_tag }}{{ form.awards }}</p>
+    <p style="color:var(--muted);font-size:0.82rem;">
+        WFH exceptions, achievements, and escalations are logged separately &mdash; use their icons
+        on the Team page to add or review entries over time.
+    </p>
     <p style="margin-top:1.25rem;">
         <button class="btn" type="submit">Save</button>
         <button class="btn" type="button" style="background:#8a97a6;" onclick="document.getElementById('edit-employee-modal').close()">Cancel</button>

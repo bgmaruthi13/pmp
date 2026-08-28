@@ -47,9 +47,6 @@ class Employee(models.Model):
         help_text="Skip-level / dotted-line manager, when different from the direct manager.",
     )
     doj = models.DateField("Date of joining", null=True, blank=True)
-    wfh_exceptions = models.CharField("WFH exceptions", max_length=200, blank=True)
-    achievements = models.TextField(blank=True)
-    escalations = models.TextField(blank=True)
     awards = models.TextField(blank=True)
     rtb_efficiency = models.DecimalField(
         "RTB efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
@@ -79,6 +76,25 @@ class Employee(models.Model):
 
     def roles_display(self):
         return ", ".join(r.name for r in self.roles.all())
+
+
+class EmployeeNote(models.Model):
+    class Category(models.TextChoices):
+        WFH_EXCEPTION = "wfh_exception", "WFH Exception"
+        ACHIEVEMENT = "achievement", "Achievement"
+        ESCALATION = "escalation", "Escalation"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="notes")
+    category = models.CharField(max_length=20, choices=Category.choices)
+    date = models.DateField(null=True, blank=True)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.get_category_display()}: {self.description[:40]}"
 
 
 class WorkItem(models.Model):

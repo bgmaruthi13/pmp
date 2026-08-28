@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
-from teams.models import DEFAULT_ROLES, Employee, Role, WorkItem
+from teams.models import DEFAULT_ROLES, Employee, EmployeeNote, Role, WorkItem
 
 
 class Command(BaseCommand):
@@ -40,7 +40,6 @@ class Command(BaseCommand):
                 "rtb_efficiency": 12.5,
                 "gsc_efficiency": 8.0,
                 "ai_efficiency": 15.0,
-                "achievements": "Led the ITR e-Filing Portal launch.",
             },
         )
         lead.roles.set([roles["Project Lead"]])
@@ -82,7 +81,6 @@ class Command(BaseCommand):
                     "rtb_efficiency": 10,
                     "gsc_efficiency": 5,
                     "ai_efficiency": 20,
-                    "achievements": "Reduced OTP failure rate by 30%.",
                 },
             ),
             (
@@ -104,7 +102,6 @@ class Command(BaseCommand):
                     "emp_id": "EMP006",
                     "designation": "Specialist System Engineer",
                     "doj": date(2022, 9, 1),
-                    "escalations": "P1 - Refund DB outage, Mar 2026 (resolved).",
                 },
             ),
             (
@@ -115,7 +112,6 @@ class Command(BaseCommand):
                     "emp_id": "EMP007",
                     "designation": "Lead Software Engineer",
                     "doj": date(2021, 11, 20),
-                    "wfh_exceptions": "Approved - relocated to Pune.",
                 },
             ),
             (
@@ -148,6 +144,24 @@ class Command(BaseCommand):
             )
             emp.roles.set([roles[r] for r in role_names])
             employees[name] = emp
+
+        # -- WFH exceptions / achievements / escalations (repeatable, dated logs) --
+        notes_data = [
+            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2025, 11, 5), "Reduced OTP failure rate by 30%."),
+            ("Divya Menon", EmployeeNote.Category.ACHIEVEMENT, date(2026, 3, 18), "Shipped PAN validation caching layer ahead of schedule."),
+            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 3, 2), "P1 - Refund DB outage (resolved same day)."),
+            ("Rohit Deshmukh", EmployeeNote.Category.ESCALATION, date(2026, 6, 21), "P2 - Slow query alert on reconciliation batch."),
+            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2025, 9, 1), "Approved - relocated to Pune."),
+            ("Priya Raghavan", EmployeeNote.Category.WFH_EXCEPTION, date(2026, 4, 14), "Approved - extended for family care, 2 weeks."),
+            ("Karthik Subramaniam", EmployeeNote.Category.ACHIEVEMENT, date(2026, 8, 1), "SDQ Award nomination - SCHREMS project & NIST controls."),
+        ]
+        for name, category, note_date, description in notes_data:
+            EmployeeNote.objects.get_or_create(
+                employee=employees[name],
+                category=category,
+                date=note_date,
+                description=description,
+            )
 
         # -- Areas ---------------------------------------------------------
         area_names = ["Portal", "Integration", "Infra", "Patching", "Security", "Audit"]

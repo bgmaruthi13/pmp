@@ -10,5 +10,8 @@ urlpatterns = [
     path("<int:pk>/work/", views.employee_work, name="employee-work"),
     path("<int:pk>/work/import/", views.employee_import_upload, name="employee-import-upload"),
     path("<int:pk>/work/import/map/", views.employee_import_map, name="employee-import-map"),
+    path("<int:pk>/notes/<str:category>/", views.employee_notes, name="employee-notes"),
+    path("<int:pk>/notes/<str:category>/<int:note_id>/edit/", views.employee_note_edit, name="employee-note-edit"),
+    path("<int:pk>/notes/<str:category>/<int:note_id>/delete/", views.employee_note_delete, name="employee-note-delete"),
     path("<int:pk>/", views.employee_detail, name="employee-detail"),
 ]

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Employee
+from .models import Employee, EmployeeNote
 
 
 class EmployeeForm(forms.ModelForm):
@@ -14,9 +14,6 @@ class EmployeeForm(forms.ModelForm):
             "manager",
             "line_manager",
             "doj",
-            "wfh_exceptions",
-            "achievements",
-            "escalations",
             "awards",
             "rtb_efficiency",
             "gsc_efficiency",
@@ -24,8 +21,6 @@ class EmployeeForm(forms.ModelForm):
         ]
         widgets = {
             "doj": forms.DateInput(attrs={"type": "date"}),
-            "achievements": forms.Textarea(attrs={"rows": 2}),
-            "escalations": forms.Textarea(attrs={"rows": 2}),
             "awards": forms.Textarea(attrs={"rows": 2}),
         }
 
@@ -34,3 +29,13 @@ class EmployeeForm(forms.ModelForm):
         if employee is not None:
             self.fields["manager"].queryset = Employee.objects.exclude(pk=employee.pk)
             self.fields["line_manager"].queryset = Employee.objects.exclude(pk=employee.pk)
+
+
+class EmployeeNoteForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeNote
+        fields = ["date", "description"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+        }

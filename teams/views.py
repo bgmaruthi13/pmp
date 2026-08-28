@@ -8,14 +8,17 @@ import openpyxl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from projects.models import Project
 
 from .azure_devops import AzureDevOpsError, fetch_work_items
-from .forms import EmployeeForm
-from .models import AzureDevOpsSettings, Employee, WorkItem
+from .forms import EmployeeForm, EmployeeNoteForm
+from .models import AzureDevOpsSettings, Employee, EmployeeNote, WorkItem
+
+NOTE_CATEGORY_LABELS = dict(EmployeeNote.Category.choices)
 
 MAX_WORK_IMPORT_ROWS = 1000
 
@@ -36,17 +39,22 @@ WORK_IMPORT_FIELDS = [
 def team_list(request):
     employees = (
         Employee.objects.select_related("manager", "line_manager")
-        .prefetch_related("tickets_received", "roles", "projects")
+        .prefetch_related("tickets_received", "roles", "projects", "notes")
         .order_by("name")
     )
-    rows = [
-        {
-            "employee": employee,
-            "projects": sorted(employee.projects.all(), key=lambda p: p.name),
-            "ticket_count": len(employee.tickets_received.all()),
-        }
-        for employee in employees
-    ]
+    rows = []
+    for employee in employees:
+        notes = list(employee.notes.all())
+        rows.append(
+            {
+                "employee": employee,
+                "projects": sorted(employee.projects.all(), key=lambda p: p.name),
+                "ticket_count": len(employee.tickets_received.all()),
+                "wfh_count": sum(1 for n in notes if n.category == EmployeeNote.Category.WFH_EXCEPTION),
+                "achievement_count": sum(1 for n in notes if n.category == EmployeeNote.Category.ACHIEVEMENT),
+                "escalation_count": sum(1 for n in notes if n.category == EmployeeNote.Category.ESCALATION),
+            }
+        )
     return render(request, "teams/team_list.html", {"rows": rows})
 
 
@@ -399,3 +407,77 @@ def employee_import_map(request, pk):
         "teams/work_import_map.html",
         {"employee": employee, "headers": headers, "rows": rows[:8], "fields": WORK_IMPORT_FIELDS, "mapping": mapping},
     )
+
+
+def _notes_list_context(employee, category, form=None):
+    return {
+        "employee": employee,
+        "category": category,
+        "category_label": NOTE_CATEGORY_LABELS[category],
+        "notes": employee.notes.filter(category=category),
+        "form": form or EmployeeNoteForm(),
+    }
+
+
+def employee_notes(request, pk, category):
+    employee = get_object_or_404(Employee, pk=pk)
+    if category not in NOTE_CATEGORY_LABELS:
+        raise Http404("Unknown note category.")
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        form = EmployeeNoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.employee = employee
+            note.category = category
+            note.save()
+            return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+        return render(request, "teams/_notes_list.html", _notes_list_context(employee, category, form))
+
+    return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+
+
+def employee_note_edit(request, pk, category, note_id):
+    employee = get_object_or_404(Employee, pk=pk)
+    if category not in NOTE_CATEGORY_LABELS:
+        raise Http404("Unknown note category.")
+    note = get_object_or_404(EmployeeNote, pk=note_id, employee=employee, category=category)
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        form = EmployeeNoteForm(request.POST, instance=note)
+        if form.is_valid():
+            form.save()
+            return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+    else:
+        form = EmployeeNoteForm(instance=note)
+
+    return render(
+        request,
+        "teams/_note_edit_form.html",
+        {
+            "employee": employee,
+            "category": category,
+            "category_label": NOTE_CATEGORY_LABELS[category],
+            "note": note,
+            "form": form,
+        },
+    )
+
+
+def employee_note_delete(request, pk, category, note_id):
+    employee = get_object_or_404(Employee, pk=pk)
+    if category not in NOTE_CATEGORY_LABELS:
+        raise Http404("Unknown note category.")
+    note = get_object_or_404(EmployeeNote, pk=note_id, employee=employee, category=category)
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        note.delete()
+        return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
+
+    return redirect("employee-notes", pk=pk, category=category)
