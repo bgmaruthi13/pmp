@@ -8,7 +8,14 @@
     <div class="table-wrap" style="max-width: 500px;">
     <table>
         <tbody>
-            <tr><th>Role</th><td>{{ employee.get_role_display }}</td></tr>
+            <tr>
+                <th>Roles</th>
+                <td>
+                    {% for role in employee.roles.all %}
+                        <span class="pill info">{{ role.name }}</span>
+                    {% empty %}—{% endfor %}
+                </td>
+            </tr>
             <tr>
                 <th>Manager</th>
                 <td>{% if employee.manager %}<a href="{{ employee.manager.get_absolute_url }}">{{ employee.manager.name }}</a>{% else %}—{% endif %}</td>

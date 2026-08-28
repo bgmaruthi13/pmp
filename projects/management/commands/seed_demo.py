@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
-from teams.models import Employee, WorkItem
+from teams.models import DEFAULT_ROLES, Employee, Role, WorkItem
 
 
 class Command(BaseCommand):
@@ -25,34 +25,46 @@ class Command(BaseCommand):
         admin_user.save()
 
         # -- Team --------------------------------------------------------
+        roles = {}
+        for order, role_name in enumerate(DEFAULT_ROLES):
+            role, _ = Role.objects.get_or_create(name=role_name, defaults={"order": order})
+            roles[role_name] = role
+
         lead, _ = Employee.objects.get_or_create(
-            name="Ananya Krishnan", defaults={"role": Employee.Role.LEAD, "email": "ananya.krishnan@example.com"}
+            name="Ananya Krishnan", defaults={"email": "ananya.krishnan@example.com"}
         )
+        lead.roles.set([roles["Project Lead"]])
         sdm, _ = Employee.objects.get_or_create(
-            name="Arjun Malhotra", defaults={"role": Employee.Role.SDM, "email": "arjun.malhotra@example.com"}
+            name="Arjun Malhotra", defaults={"email": "arjun.malhotra@example.com"}
         )
+        sdm.roles.set([roles["Service Delivery Manager"]])
         platform_lead, _ = Employee.objects.get_or_create(
             name="Vikram Nair",
-            defaults={"role": Employee.Role.PLATFORM_LEAD, "email": "vikram.nair@example.com", "manager": lead},
+            defaults={"email": "vikram.nair@example.com", "manager": lead},
         )
+        platform_lead.roles.set([roles["Platform Engineer Lead"]])
+
+        # A few people intentionally span more than one role, to reflect
+        # resources who work across, e.g., DevOps and Database, or
+        # Platform Engineering and general development.
         employees_data = [
-            ("Divya Menon", Employee.Role.PLATFORM_ENGINEER, platform_lead),
-            ("Sanjay Iyer", Employee.Role.PLATFORM_ENGINEER, platform_lead),
-            ("Rohit Deshmukh", Employee.Role.DATABASE_ENGINEER, lead),
-            ("Priya Raghavan", Employee.Role.DEVOPS, lead),
-            ("Karthik Subramaniam", Employee.Role.DEVOPS, lead),
-            ("Neha Kulkarni", Employee.Role.DEVOPS, lead),
+            ("Divya Menon", ["Platform Engineer"], platform_lead),
+            ("Sanjay Iyer", ["Platform Engineer", "Developer"], platform_lead),
+            ("Rohit Deshmukh", ["Database Engineer"], lead),
+            ("Priya Raghavan", ["DevOps / Integration"], lead),
+            ("Karthik Subramaniam", ["DevOps / Integration", "Database Engineer"], lead),
+            ("Neha Kulkarni", ["DevOps / Integration", "Developer"], lead),
         ]
         employees = {"Ananya Krishnan": lead, "Vikram Nair": platform_lead, "Arjun Malhotra": sdm}
-        for name, role, manager in employees_data:
+        for name, role_names, manager in employees_data:
             emp, _ = Employee.objects.get_or_create(
                 name=name,
                 defaults={
-                    "role": role,
                     "manager": manager,
                     "email": f"{name.lower().replace(' ', '.')}@example.com",
                 },
             )
+            emp.roles.set([roles[r] for r in role_names])
             employees[name] = emp
 
         # -- Areas ---------------------------------------------------------

@@ -10,7 +10,7 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Role</th>
+                <th>Roles</th>
                 <th>Manager</th>
                 <th>Email</th>
                 <th>Project(s)</th>
@@ -21,7 +21,13 @@
             {% for row in rows %}
                 <tr>
                     <td><span class="avatar">{{ row.employee.name|initials }}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
-                    <td>{{ row.employee.get_role_display }}</td>
+                    <td>
+                        {% for role in row.employee.roles.all %}
+                            <span class="pill info">{{ role.name }}</span>
+                        {% empty %}
+                            &mdash;
+                        {% endfor %}
+                    </td>
                     <td>{{ row.employee.manager.name|default:"—" }}</td>
                     <td>{{ row.employee.email|default:"—" }}</td>
                     <td>

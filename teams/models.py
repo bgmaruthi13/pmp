@@ -1,19 +1,32 @@
 from django.db import models
 from django.urls import reverse
 
+DEFAULT_ROLES = [
+    "Project Lead",
+    "Platform Engineer Lead",
+    "Platform Engineer",
+    "Database Engineer",
+    "DevOps / Integration",
+    "Developer",
+    "Service Delivery Manager",
+]
+
+
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return self.name
+
 
 class Employee(models.Model):
-    class Role(models.TextChoices):
-        LEAD = "lead", "Project Lead"
-        PLATFORM_LEAD = "platform_lead", "Platform Engineer Lead"
-        PLATFORM_ENGINEER = "platform_engineer", "Platform Engineer"
-        DATABASE_ENGINEER = "database_engineer", "Database Engineer"
-        DEVOPS = "devops", "DevOps / Integration"
-        SDM = "sdm", "Service Delivery Manager"
-
     name = models.CharField(max_length=150)
     email = models.EmailField(blank=True)
-    role = models.CharField(max_length=30, choices=Role.choices)
+    roles = models.ManyToManyField(Role, related_name="employees", blank=True)
     manager = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="reports"
     )
@@ -26,13 +39,16 @@ class Employee(models.Model):
     )
 
     class Meta:
-        ordering = ["role", "name"]
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
 
     def get_absolute_url(self):
         return reverse("employee-detail", args=[self.pk])
+
+    def roles_display(self):
+        return ", ".join(r.name for r in self.roles.all())
 
 
 class WorkItem(models.Model):

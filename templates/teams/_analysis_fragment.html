@@ -1,7 +1,7 @@
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
     <div>
         <h2 style="margin:0 0 0.2rem;color:var(--navy-dark);">{{ employee.name }}</h2>
-        <div style="color:var(--muted);font-size:0.85rem;">{{ employee.get_role_display }} &middot; Work Analysis</div>
+        <div style="color:var(--muted);font-size:0.85rem;">{{ employee.roles_display|default:"Role unspecified" }} &middot; Work Analysis</div>
     </div>
 </div>
 

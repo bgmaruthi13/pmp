@@ -31,8 +31,8 @@ WORK_IMPORT_FIELDS = [
 def team_list(request):
     employees = (
         Employee.objects.select_related("manager")
-        .prefetch_related("tickets_received__project", "projects_led")
-        .order_by("role", "name")
+        .prefetch_related("tickets_received__project", "projects_led", "roles")
+        .order_by("name")
     )
     rows = []
     for employee in employees:
@@ -51,7 +51,7 @@ def team_list(request):
 
 def employee_detail(request, pk):
     employee = get_object_or_404(
-        Employee.objects.select_related("manager").prefetch_related("reports", "projects_led"),
+        Employee.objects.select_related("manager").prefetch_related("reports", "projects_led", "roles"),
         pk=pk,
     )
     tickets = employee.tickets_received.select_related("project").order_by("-created_at")
@@ -65,7 +65,7 @@ def employee_detail(request, pk):
 
 
 def employee_analysis_fragment(request, pk):
-    employee = get_object_or_404(Employee, pk=pk)
+    employee = get_object_or_404(Employee.objects.prefetch_related("roles"), pk=pk)
     items = list(employee.work_items.all())
 
     monthly_counts = Counter()
@@ -109,8 +109,9 @@ def _build_analysis_prompt(employee, items, monthly_series, type_counts, total_p
     monthly_lines = "\n".join(f"- {m['month']}: {m['count']} item(s)" for m in monthly_series)
     sample_titles = "\n".join(f"- [{i.work_item_type or 'Item'}] {i.title}" for i in items[:25])
 
+    roles = employee.roles_display() or "role unspecified"
     return (
-        f"Analyze {employee.name}'s ({employee.get_role_display()}) delivery history{span}, "
+        f"Analyze {employee.name}'s ({roles}) delivery history{span}, "
         f"based on {len(items)} tracked work item(s) totalling {total_points or 0} story points.\n\n"
         f"Work item types:\n{type_lines}\n\n"
         f"Monthly delivery:\n{monthly_lines}\n\n"

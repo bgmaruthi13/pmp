@@ -1,43 +1,67 @@
+import re
+
 import openpyxl
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Max
 from django.shortcuts import redirect, render
 from django.urls import path
 
-from .models import AzureDevOpsSettings, Employee, WorkItem
+from .models import AzureDevOpsSettings, Employee, Role, WorkItem
 
 MAX_IMPORT_ROWS = 500
 
 IMPORT_FIELDS = [
     {"key": "name", "label": "Name", "required": True},
     {"key": "email", "label": "Email", "required": False},
-    {"key": "role", "label": "Role", "required": True},
+    {"key": "roles", "label": "Roles (comma-separated)", "required": True},
     {"key": "manager", "label": "Manager (by name)", "required": False},
 ]
 
 
 def _guess_column(headers, key):
+    candidates = {key, key.rstrip("s")}
     for header in headers:
-        if key in header.lower():
+        h = header.lower()
+        if any(c in h for c in candidates):
             return header
     return ""
 
 
-def _role_lookup():
-    lookup = {}
-    for value, label in Employee.Role.choices:
-        lookup[value.lower()] = value
-        lookup[label.lower()] = value
-        lookup[value.replace("_", " ").lower()] = value
-    return lookup
+def _resolve_roles(roles_raw):
+    """Split a comma/slash/semicolon-separated cell into Role objects, creating any new ones."""
+    names = [r.strip() for r in re.split(r"[,;/]", roles_raw) if r.strip()]
+    roles = []
+    for name in names:
+        role = Role.objects.filter(name__iexact=name).first()
+        if not role:
+            next_order = (Role.objects.aggregate(Max("order"))["order__max"] or 0) + 1
+            role = Role.objects.create(name=name, order=next_order)
+        roles.append(role)
+    return roles
+
+
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ("name", "order", "employee_count")
+    ordering = ("order", "name")
+
+    @admin.display(description="Employees")
+    def employee_count(self, obj):
+        return obj.employees.count()
 
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ("name", "role", "manager", "email")
-    list_filter = ("role",)
+    list_display = ("name", "roles_list", "manager", "email")
+    list_filter = ("roles",)
     search_fields = ("name", "email")
+    filter_horizontal = ("roles",)
     change_list_template = "admin/teams/employee/change_list.html"
+
+    @admin.display(description="Roles")
+    def roles_list(self, obj):
+        return obj.roles_display() or "—"
 
     def get_urls(self):
         custom = [
@@ -112,7 +136,6 @@ class EmployeeAdmin(admin.ModelAdmin):
                 return render(request, "admin/teams/employee/import_map.html", context)
 
             col_index = {header: i for i, header in enumerate(headers)}
-            role_lookup = _role_lookup()
 
             def cell(row, key):
                 header = mapping[key]
@@ -125,21 +148,22 @@ class EmployeeAdmin(admin.ModelAdmin):
             pending_managers = {}
             for row in rows:
                 name = cell(row, "name")
-                role_raw = cell(row, "role")
-                if not name or not role_raw:
+                roles_raw = cell(row, "roles")
+                if not name or not roles_raw:
                     skipped += 1
                     continue
-                role_value = role_lookup.get(role_raw.strip().lower())
-                if not role_value:
+                role_objs = _resolve_roles(roles_raw)
+                if not role_objs:
                     skipped += 1
                     continue
 
                 employee, was_created = Employee.objects.update_or_create(
                     name=name,
-                    defaults={"role": role_value, "email": cell(row, "email")},
+                    defaults={"email": cell(row, "email")},
                 )
                 created += was_created
                 updated += not was_created
+                employee.roles.set(role_objs)
 
                 manager_name = cell(row, "manager")
                 if manager_name:
@@ -155,7 +179,7 @@ class EmployeeAdmin(admin.ModelAdmin):
 
             summary = f"Imported {created} new and updated {updated} existing team member(s)."
             if skipped:
-                summary += f" Skipped {skipped} row(s) missing a required Name/Role value."
+                summary += f" Skipped {skipped} row(s) missing a required Name/Roles value."
             messages.success(request, summary)
             return redirect("admin:teams_employee_changelist")
 
