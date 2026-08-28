@@ -145,9 +145,9 @@
             var input = document.getElementById('target-' + groupIdx);
             var pct = input ? parseFloat(input.value) : 0;
             if (isNaN(pct) || pct < 0) { pct = 0; }
-            var reduction = Math.floor(checked * pct / 100);
-            var projected = checked - reduction;
-            if (checked > 0 && projected < 1) { projected = 1; }
+            var reduction = Math.round((checked * pct / 100) * 10) / 10;
+            var projected = Math.round((checked - reduction) * 10) / 10;
+            if (projected < 0) { projected = 0; }
             var out = document.getElementById('projected-' + groupIdx);
             if (out) {
                 out.textContent = checked === 0 ? '—' : (projected + ' (−' + reduction + ', ' + pct.toFixed(1) + '%)');
