@@ -3,141 +3,161 @@
 {% block content %}
     <h1 style="margin-top:0;">Team Efficiency &amp; Headcount Planning</h1>
     <p style="color:var(--muted);max-width:760px;">
-        All resources are selected by default &mdash; deselect anyone you want to leave out of the
-        calculation. Blended % averages each person's RTB/GSC/AI efficiency fields; work items and
-        points are pulled from their actual tracked tickets, so you can compare claimed efficiency
-        against real delivery. Choose which attribute (or the blended average of all three) should
-        drive the headcount calculation below. Nothing here is saved.
+        RTB/GSC/AI efficiency % is set per line manager (falling back to the direct manager when no
+        line manager is set) and applies to that manager's whole team &mdash; it isn't tracked per
+        individual. Every team member is selected by default; deselect anyone you want to leave out
+        of a team's headcount calculation. Work items and points are pulled from each person's
+        actual tracked tickets for reference. Nothing here is saved.
     </p>
 
-    <p>
-        <a href="#" onclick="setAllChecked(true); return false;">Select all</a>
-        &middot;
-        <a href="#" onclick="setAllChecked(false); return false;">Clear all</a>
-    </p>
+    {% for group in groups %}
+        <div class="org-role">
+            <h3>
+                {% if group.manager %}
+                    Team under <a href="{{ group.manager.get_absolute_url }}">{{ group.manager.name }}</a>
+                {% else %}
+                    Leadership (no manager or line manager set)
+                {% endif %}
+                <small style="font-weight:400;color:var(--muted);">({{ group.team_size }} member{{ group.team_size|pluralize }})</small>
+            </h3>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Name</th>
-                    <th>Designation</th>
-                    <th>Manager</th>
-                    <th>Line Manager</th>
-                    <th>RTB %</th>
-                    <th>GSC %</th>
-                    <th>AI %</th>
-                    <th>Blended %</th>
-                    <th>Work Items</th>
-                    <th>Story Points</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                    <tr>
-                        <td>
-                            <input
-                                type="checkbox" class="resource-check" checked
-                                data-rtb="{{ row.employee.rtb_efficiency|default_if_none:'' }}"
-                                data-gsc="{{ row.employee.gsc_efficiency|default_if_none:'' }}"
-                                data-ai="{{ row.employee.ai_efficiency|default_if_none:'' }}"
-                                data-blended="{{ row.blended|default_if_none:'' }}"
-                                onchange="recalc()"
-                            >
-                        </td>
-                        <td style="white-space:nowrap;"><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
-                        <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
-                        <td style="white-space:nowrap;">{{ row.employee.manager.name|default:"—" }}</td>
-                        <td style="white-space:nowrap;">{{ row.employee.line_manager.name|default:"—" }}</td>
-                        <td style="white-space:nowrap;">{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
-                        <td style="white-space:nowrap;">{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
-                        <td style="white-space:nowrap;">{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
-                        <td style="white-space:nowrap;">{% if row.blended is not None %}<span class="pill info">{{ row.blended }}%</span>{% else %}—{% endif %}</td>
-                        <td style="white-space:nowrap;">{{ row.item_count }}</td>
-                        <td style="white-space:nowrap;">{{ row.points }}</td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="11">No team members yet.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+            {% if group.manager %}
+                <p style="color:var(--muted);font-size:0.85rem;">
+                    RTB {% if group.manager.rtb_efficiency is not None %}{{ group.manager.rtb_efficiency }}%{% else %}&mdash;{% endif %}
+                    &middot; GSC {% if group.manager.gsc_efficiency is not None %}{{ group.manager.gsc_efficiency }}%{% else %}&mdash;{% endif %}
+                    &middot; AI {% if group.manager.ai_efficiency is not None %}{{ group.manager.ai_efficiency }}%{% else %}&mdash;{% endif %}
+                    &mdash; set on {{ group.manager.name }}'s profile (<a href="{% url 'team-org' %}">edit on the Team page</a>).
+                </p>
+            {% endif %}
 
-    <div class="stat-row" style="align-items:flex-end;margin-top:1.25rem;">
-        <div class="stat-tile"><div class="stat-value" id="selected-count">0</div><div class="stat-label">Selected headcount</div></div>
-        <div class="stat-tile"><div class="stat-value" id="avg-rtb">—</div><div class="stat-label">Avg. RTB %</div></div>
-        <div class="stat-tile"><div class="stat-value" id="avg-gsc">—</div><div class="stat-label">Avg. GSC %</div></div>
-        <div class="stat-tile"><div class="stat-value" id="avg-ai">—</div><div class="stat-label">Avg. AI %</div></div>
-        <div class="stat-tile"><div class="stat-value" id="avg-blended">—</div><div class="stat-label">Avg. blended %</div></div>
-        <div class="stat-tile">
-            <label for="calc-attribute" style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">Calculate using</label>
-            <select id="calc-attribute" style="width:170px;" onchange="applyAttributeChoice()">
-                <option value="blended">Blended (RTB+GSC+AI)</option>
-                <option value="rtb">RTB only</option>
-                <option value="gsc">GSC only</option>
-                <option value="ai">AI only</option>
-            </select>
+            <p>
+                <a href="#" onclick="setGroupChecked({{ forloop.counter0 }}, true); return false;">Select all</a>
+                &middot;
+                <a href="#" onclick="setGroupChecked({{ forloop.counter0 }}, false); return false;">Clear all</a>
+            </p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Name</th>
+                            <th>Designation</th>
+                            <th>Work Items</th>
+                            <th>Story Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in group.rows %}
+                            <tr>
+                                <td>
+                                    <input
+                                        type="checkbox" class="resource-check" checked
+                                        data-group="{{ forloop.parentloop.counter0 }}"
+                                        onchange="recalcGroup({{ forloop.parentloop.counter0 }})"
+                                    >
+                                </td>
+                                <td style="white-space:nowrap;"><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a></td>
+                                <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
+                                <td style="white-space:nowrap;">{{ row.item_count }}</td>
+                                <td style="white-space:nowrap;">{{ row.points }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if group.manager %}
+                <div class="stat-row" style="align-items:flex-end;">
+                    <div class="stat-tile"><div class="stat-value" id="selected-{{ forloop.counter0 }}">{{ group.team_size }}</div><div class="stat-label">Selected headcount</div></div>
+                    <div class="stat-tile">
+                        <label for="attr-{{ forloop.counter0 }}" style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">Calculate using</label>
+                        <select id="attr-{{ forloop.counter0 }}" style="width:170px;" onchange="applyAttr({{ forloop.counter0 }})">
+                            <option value="blended">Blended (RTB+GSC+AI)</option>
+                            <option value="rtb">RTB only</option>
+                            <option value="gsc">GSC only</option>
+                            <option value="ai">AI only</option>
+                        </select>
+                    </div>
+                    <div class="stat-tile">
+                        <label for="target-{{ forloop.counter0 }}" style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">Target efficiency gain %</label>
+                        <input
+                            type="number" step="0.1" min="0" max="100"
+                            id="target-{{ forloop.counter0 }}" style="width:110px;"
+                            oninput="recalcProjected({{ forloop.counter0 }})"
+                        >
+                    </div>
+                    <div class="stat-tile">
+                        <div class="stat-value" id="projected-{{ forloop.counter0 }}">{{ group.team_size }}</div>
+                        <div class="stat-label">Projected headcount</div>
+                    </div>
+                </div>
+            {% else %}
+                <p style="color:var(--muted);font-size:0.85rem;">
+                    No line manager is set for this group, so no efficiency % applies here &mdash;
+                    RTB/GSC/AI targets are set per line manager.
+                </p>
+            {% endif %}
         </div>
-        <div class="stat-tile">
-            <label for="target-pct" style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">Target efficiency gain %</label>
-            <input type="number" step="0.1" min="0" max="100" id="target-pct" style="width:110px;" oninput="recalcProjected()">
-        </div>
-        <div class="stat-tile"><div class="stat-value" id="projected">—</div><div class="stat-label">Projected headcount</div></div>
-    </div>
+    {% empty %}
+        <p>No team members yet.</p>
+    {% endfor %}
 
     <script>
-        function setAllChecked(state) {
-            document.querySelectorAll('.resource-check').forEach(function (cb) { cb.checked = state; });
-            recalc();
+        var groupAttrs = {};
+        {% for group in groups %}
+            {% if group.manager %}
+                groupAttrs[{{ forloop.counter0 }}] = {
+                    rtb: {{ group.manager.rtb_efficiency|default_if_none:"null" }},
+                    gsc: {{ group.manager.gsc_efficiency|default_if_none:"null" }},
+                    ai: {{ group.manager.ai_efficiency|default_if_none:"null" }},
+                    blended: {{ group.manager_blended|default_if_none:"null" }}
+                };
+            {% endif %}
+        {% endfor %}
+
+        function setGroupChecked(groupIdx, state) {
+            document.querySelectorAll('.resource-check[data-group="' + groupIdx + '"]').forEach(function (cb) { cb.checked = state; });
+            recalcGroup(groupIdx);
         }
 
-        function avgOf(values) {
-            var nums = values
-                .filter(function (v) { return v !== null && v !== '' && !isNaN(v); })
-                .map(Number);
-            if (!nums.length) { return null; }
-            var total = nums.reduce(function (a, b) { return a + b; }, 0);
-            return Math.round((total / nums.length) * 100) / 100;
+        function recalcGroup(groupIdx) {
+            var el = document.getElementById('selected-' + groupIdx);
+            if (el) {
+                el.textContent = document.querySelectorAll('.resource-check[data-group="' + groupIdx + '"]:checked').length;
+            }
+            recalcProjected(groupIdx);
         }
 
-        var lastAverages = { blended: null, rtb: null, gsc: null, ai: null };
-
-        function recalc() {
-            var checked = Array.prototype.slice.call(document.querySelectorAll('.resource-check:checked'));
-            document.getElementById('selected-count').textContent = checked.length;
-
-            var rtb = avgOf(checked.map(function (cb) { return cb.dataset.rtb; }));
-            var gsc = avgOf(checked.map(function (cb) { return cb.dataset.gsc; }));
-            var ai = avgOf(checked.map(function (cb) { return cb.dataset.ai; }));
-            var blended = avgOf(checked.map(function (cb) { return cb.dataset.blended; }));
-            lastAverages = { blended: blended, rtb: rtb, gsc: gsc, ai: ai };
-
-            document.getElementById('avg-rtb').textContent = rtb === null ? '—' : rtb + '%';
-            document.getElementById('avg-gsc').textContent = gsc === null ? '—' : gsc + '%';
-            document.getElementById('avg-ai').textContent = ai === null ? '—' : ai + '%';
-            document.getElementById('avg-blended').textContent = blended === null ? '—' : blended + '%';
-
-            applyAttributeChoice();
+        function applyAttr(groupIdx) {
+            var attrs = groupAttrs[groupIdx] || {};
+            var attr = document.getElementById('attr-' + groupIdx).value;
+            var value = attrs[attr];
+            var input = document.getElementById('target-' + groupIdx);
+            if (input) {
+                input.value = (value === null || value === undefined) ? 0 : value;
+            }
+            recalcProjected(groupIdx);
         }
 
-        function applyAttributeChoice() {
-            var attr = document.getElementById('calc-attribute').value;
-            var value = lastAverages[attr];
-            document.getElementById('target-pct').value = value === null ? 0 : value;
-            recalcProjected();
-        }
-
-        function recalcProjected() {
-            var checked = document.querySelectorAll('.resource-check:checked').length;
-            var pct = parseFloat(document.getElementById('target-pct').value);
+        function recalcProjected(groupIdx) {
+            var checked = document.querySelectorAll('.resource-check[data-group="' + groupIdx + '"]:checked').length;
+            var input = document.getElementById('target-' + groupIdx);
+            var pct = input ? parseFloat(input.value) : 0;
             if (isNaN(pct) || pct < 0) { pct = 0; }
             var reduction = Math.floor(checked * pct / 100);
             var projected = checked - reduction;
             if (checked > 0 && projected < 1) { projected = 1; }
-            document.getElementById('projected').textContent = checked === 0 ? '—' : (projected + ' (−' + reduction + ', ' + pct.toFixed(1) + '%)');
+            var out = document.getElementById('projected-' + groupIdx);
+            if (out) {
+                out.textContent = checked === 0 ? '—' : (projected + ' (−' + reduction + ', ' + pct.toFixed(1) + '%)');
+            }
         }
 
-        recalc();
+        {% for group in groups %}
+            {% if group.manager %}
+                applyAttr({{ forloop.counter0 }});
+            {% endif %}
+        {% endfor %}
     </script>
 {% endblock %}

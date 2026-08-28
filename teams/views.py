@@ -66,23 +66,40 @@ def _blended_efficiency(employee):
 
 
 def team_efficiency(request):
-    employees = (
-        Employee.objects.select_related("manager", "line_manager")
-        .prefetch_related("work_items")
-        .order_by("name")
-    )
-    rows = []
+    employees = Employee.objects.select_related("manager", "line_manager").prefetch_related("work_items")
+
+    groups = {}
     for employee in employees:
-        items = list(employee.work_items.all())
-        rows.append(
+        lead = employee.line_manager or employee.manager
+        key = lead.pk if lead else 0
+        group = groups.setdefault(key, {"manager": lead, "members": []})
+        group["members"].append(employee)
+
+    result_groups = []
+    for group in groups.values():
+        members = sorted(group["members"], key=lambda e: e.name)
+        rows = []
+        for employee in members:
+            items = list(employee.work_items.all())
+            rows.append(
+                {
+                    "employee": employee,
+                    "item_count": len(items),
+                    "points": sum((i.story_points or 0) for i in items),
+                }
+            )
+        manager = group["manager"]
+        result_groups.append(
             {
-                "employee": employee,
-                "blended": _blended_efficiency(employee),
-                "item_count": len(items),
-                "points": sum((i.story_points or 0) for i in items),
+                "manager": manager,
+                "manager_blended": _blended_efficiency(manager) if manager else None,
+                "rows": rows,
+                "team_size": len(members),
             }
         )
-    return render(request, "teams/efficiency.html", {"rows": rows})
+
+    result_groups.sort(key=lambda g: (g["manager"] is None, g["manager"].name if g["manager"] else ""))
+    return render(request, "teams/efficiency.html", {"groups": result_groups})
 
 
 @login_required

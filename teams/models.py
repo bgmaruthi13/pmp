@@ -49,13 +49,28 @@ class Employee(models.Model):
     doj = models.DateField("Date of joining", null=True, blank=True)
     awards = models.TextField(blank=True)
     rtb_efficiency = models.DecimalField(
-        "RTB efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
+        "RTB efficiency %",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Applies to this person's team, when they're set as someone's manager or line manager.",
     )
     gsc_efficiency = models.DecimalField(
-        "GSC efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
+        "GSC efficiency %",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Applies to this person's team, when they're set as someone's manager or line manager.",
     )
     ai_efficiency = models.DecimalField(
-        "AI efficiency %", max_digits=5, decimal_places=2, null=True, blank=True
+        "AI efficiency %",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Applies to this person's team, when they're set as someone's manager or line manager.",
     )
     azure_devops_query_url = models.URLField(
         blank=True,
