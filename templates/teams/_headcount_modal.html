@@ -1,31 +1,29 @@
-<h2 style="margin:0 0 0.75rem;color:var(--navy-dark);">Headcount</h2>
-<p style="color:var(--muted);max-width:560px;margin-top:0;">
-    Broken down by manager and project role, like a pivot table. Expand or collapse each group;
-    filter by project below &mdash; leaving it empty includes everyone.
-</p>
+<h2 style="margin:0 0 0.4rem;color:var(--navy-dark);">Headcount</h2>
+<p style="color:var(--muted);font-size:0.85rem;margin-top:0;">By manager and project role, like a pivot table.</p>
 
 {% if all_projects %}
-    <form method="get" action="{% url 'team-headcount' %}" onsubmit="return headcountAjaxSubmit(event)" style="margin-bottom:1.25rem;">
-        <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-end;">
-            <p style="margin:0;">
-                <label for="hc-project">Project</label>
-                <select name="project" id="hc-project" multiple size="4" style="width:auto;min-width:220px;">
-                    {% for p in all_projects %}
-                        <option value="{{ p.pk }}" {% if p.pk|stringformat:"s" in selected_project_ids %}selected{% endif %}>{{ p.name }}</option>
-                    {% endfor %}
-                </select>
-            </p>
-            <p style="margin:0;">
-                <button class="btn" type="submit">Apply Filter</button>
-                {% if selected_project_ids %}
-                    <a class="btn" href="#" onclick="loadHeadcountContent('{% url 'team-headcount' %}'); return false;" style="background:#8a97a6;">Clear</a>
-                {% endif %}
-            </p>
-        </div>
-        <p style="color:var(--muted);font-size:0.78rem;margin:0.6rem 0 0;">
-            Hold Ctrl/Cmd (or Shift for a range) to select multiple projects.
-        </p>
-    </form>
+    <details {% if selected_project_ids %}open{% endif %} style="margin-bottom:0.75rem;">
+        <summary style="cursor:pointer;font-weight:600;font-size:0.85rem;color:var(--navy);">
+            Filter by project{% if selected_project_ids %} ({{ selected_project_ids|length }} selected){% else %} (optional){% endif %}
+        </summary>
+        <form method="get" action="{% url 'team-headcount' %}" onsubmit="return headcountAjaxSubmit(event)" style="margin-top:0.5rem;">
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+                <p style="margin:0;">
+                    <select name="project" id="hc-project" multiple size="3" title="Hold Ctrl/Cmd (or Shift for a range) to select multiple" style="width:auto;min-width:200px;">
+                        {% for p in all_projects %}
+                            <option value="{{ p.pk }}" {% if p.pk|stringformat:"s" in selected_project_ids %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </p>
+                <p style="margin:0;">
+                    <button class="btn" type="submit">Apply</button>
+                    {% if selected_project_ids %}
+                        <a class="btn" href="#" onclick="loadHeadcountContent('{% url 'team-headcount' %}'); return false;" style="background:#8a97a6;">Clear</a>
+                    {% endif %}
+                </p>
+            </div>
+        </form>
+    </details>
 {% endif %}
 
 <div class="stat-row">
