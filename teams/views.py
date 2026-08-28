@@ -66,47 +66,23 @@ def _blended_efficiency(employee):
 
 
 def team_efficiency(request):
-    employees = Employee.objects.select_related("manager", "line_manager").prefetch_related("work_items")
-
-    groups = {}
+    employees = (
+        Employee.objects.select_related("manager", "line_manager")
+        .prefetch_related("work_items")
+        .order_by("name")
+    )
+    rows = []
     for employee in employees:
-        lead = employee.line_manager or employee.manager
-        key = lead.pk if lead else 0
-        group = groups.setdefault(key, {"manager": lead, "members": []})
-        group["members"].append(employee)
-
-    result_groups = []
-    for group in groups.values():
-        members = group["members"]
-        rows = []
-        blended_values = []
-        for employee in members:
-            items = list(employee.work_items.all())
-            blended = _blended_efficiency(employee)
-            if blended is not None:
-                blended_values.append(blended)
-            rows.append(
-                {
-                    "employee": employee,
-                    "blended": blended,
-                    "item_count": len(items),
-                    "points": sum((i.story_points or 0) for i in items),
-                }
-            )
-        rows.sort(key=lambda r: r["employee"].name)
-        avg_blended = round(sum(blended_values) / len(blended_values), 2) if blended_values else None
-
-        result_groups.append(
+        items = list(employee.work_items.all())
+        rows.append(
             {
-                "manager": group["manager"],
-                "rows": rows,
-                "team_size": len(members),
-                "avg_blended": avg_blended,
+                "employee": employee,
+                "blended": _blended_efficiency(employee),
+                "item_count": len(items),
+                "points": sum((i.story_points or 0) for i in items),
             }
         )
-
-    result_groups.sort(key=lambda g: (g["manager"] is None, g["manager"].name if g["manager"] else ""))
-    return render(request, "teams/efficiency.html", {"groups": result_groups})
+    return render(request, "teams/efficiency.html", {"rows": rows})
 
 
 @login_required

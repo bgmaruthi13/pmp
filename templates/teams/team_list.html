@@ -2,12 +2,11 @@
 {% load team_extras %}
 {% block title %}Team · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    <p style="margin-top:0;">
-        <a class="btn" href="{% url 'team-efficiency' %}">Efficiency &amp; Headcount Planning</a>
-        {% if user.is_staff %}
+    {% if user.is_staff %}
+        <p style="margin-top:0;">
             <a class="btn" href="{% url 'admin:teams_employee_import' %}">Import from Excel (Admin)</a>
-        {% endif %}
-    </p>
+        </p>
+    {% endif %}
     <div class="table-wrap">
     <table>
         <thead>
@@ -25,9 +24,6 @@
                 <th>Achievements</th>
                 <th>Escalations</th>
                 <th>Awards</th>
-                <th>RTB Efficiency</th>
-                <th>GSC Efficiency</th>
-                <th>AI Efficiency</th>
                 <th>Tickets</th>
             </tr>
         </thead>
@@ -65,13 +61,10 @@
                     <td style="white-space:nowrap;"><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'achievement' %}'); return false;">View ({{ row.achievement_count }})</a></td>
                     <td style="white-space:nowrap;"><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'escalation' %}'); return false;">View ({{ row.escalation_count }})</a></td>
                     <td>{{ row.employee.awards|default:"—" }}</td>
-                    <td style="white-space:nowrap;">{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
-                    <td style="white-space:nowrap;">{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
-                    <td style="white-space:nowrap;">{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
                     <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.ticket_count }}</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="17">No team members yet.</td></tr>
+                <tr><td colspan="14">No team members yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

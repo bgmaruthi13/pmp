@@ -181,6 +181,7 @@
     <nav class="subnav">
         <div class="inner">
             <a href="{% url 'team-org' %}" class="{% if request.resolver_match.url_name == 'team-org' or request.resolver_match.url_name == 'employee-detail' %}active{% endif %}">Team</a>
+            <a href="{% url 'team-efficiency' %}" class="{% if request.resolver_match.url_name == 'team-efficiency' %}active{% endif %}">Efficiency</a>
             <span class="disabled" title="Temporarily disabled — focusing on Team">Projects</span>
             <span class="disabled" title="Temporarily disabled — focusing on Team">Ticket Tracker</span>
             <span class="disabled" title="Temporarily disabled — focusing on Team">Applications</span>
