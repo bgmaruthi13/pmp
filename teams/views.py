@@ -110,7 +110,7 @@ def team_headcount(request):
 
     return render(
         request,
-        "teams/headcount.html",
+        "teams/_headcount_modal.html",
         {
             "groups": groups,
             "all_projects": all_projects,

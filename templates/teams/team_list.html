@@ -4,12 +4,14 @@
 {% block content %}
     <div class="tabs">
         <a href="{% url 'team-org' %}" class="active">Directory</a>
-        <a href="{% url 'team-headcount' %}">Headcount</a>
         <a href="{% url 'team-analysis' %}">Change Management</a>
         <a href="{% url 'support-analysis' %}">Support</a>
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
         {% if user.is_staff %}<a href="{% url 'admin-settings' %}">Configuration</a>{% endif %}
     </div>
+    <p style="margin-top:0;">
+        <a href="#" class="btn" onclick="openHeadcountModal(); return false;">View Headcount</a>
+    </p>
     <div class="table-wrap">
     <table>
         <thead>
@@ -112,6 +114,29 @@
                 .then(function (r) { return r.text(); })
                 .then(function (html) { document.getElementById('notes-content').innerHTML = html; })
                 .catch(function () { document.getElementById('notes-content').innerHTML = '<p>Could not save.</p>'; });
+            return false;
+        }
+    </script>
+
+    <dialog id="headcount-modal" style="width:min(720px, 94vw); border:none; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:1.5rem; max-height:85vh; overflow-y:auto;">
+        <div id="headcount-content">Loading&hellip;</div>
+    </dialog>
+    <script>
+        function loadHeadcountContent(url) {
+            fetch(url)
+                .then(function (r) { return r.text(); })
+                .then(function (html) { document.getElementById('headcount-content').innerHTML = html; })
+                .catch(function () { document.getElementById('headcount-content').innerHTML = '<p>Could not load this data.</p>'; });
+        }
+        function openHeadcountModal() {
+            document.getElementById('headcount-modal').showModal();
+            loadHeadcountContent('{% url "team-headcount" %}');
+        }
+        function headcountAjaxSubmit(event) {
+            event.preventDefault();
+            var form = event.target;
+            var params = new URLSearchParams(new FormData(form));
+            loadHeadcountContent(form.action + '?' + params.toString());
             return false;
         }
     </script>
