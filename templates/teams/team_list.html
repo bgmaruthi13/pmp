@@ -40,8 +40,8 @@
                             <div><small><a href="#" onclick="openEditEmployee({{ row.employee.pk }}); return false;">Edit</a></small></div>
                         {% endif %}
                     </td>
-                    <td>{{ row.employee.emp_id|default:"—" }}</td>
-                    <td>{{ row.employee.designation|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.emp_id|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
                     <td>
                         {% for role in row.employee.roles.all %}
                             <span class="pill info">{{ role.name }}</span>
@@ -49,23 +49,26 @@
                             &mdash;
                         {% endfor %}
                     </td>
-                    <td>{{ row.employee.manager.name|default:"—" }}</td>
-                    <td>{{ row.employee.line_manager.name|default:"—" }}</td>
-                    <td>{{ row.employee.doj|default:"—" }}</td>
-                    <td>{{ row.employee.email|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.manager.name|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.line_manager.name|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.doj|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.email|default:"—" }}</td>
                     <td>
-                        <a href="{% url 'employee-projects-edit' row.employee.pk %}">
-                            {% for project in row.projects %}{{ project.name }}{% if not forloop.last %}, {% endif %}{% empty %}Edit projects{% endfor %}
-                        </a>
+                        {% for project in row.projects %}
+                            <span class="pill info">{{ project.name }}</span>
+                        {% empty %}
+                            &mdash;
+                        {% endfor %}
+                        <div><small><a href="{% url 'employee-projects-edit' row.employee.pk %}">Edit</a></small></div>
                     </td>
-                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'wfh_exception' %}'); return false;">View ({{ row.wfh_count }})</a></td>
-                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'achievement' %}'); return false;">View ({{ row.achievement_count }})</a></td>
-                    <td><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'escalation' %}'); return false;">View ({{ row.escalation_count }})</a></td>
+                    <td style="white-space:nowrap;"><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'wfh_exception' %}'); return false;">View ({{ row.wfh_count }})</a></td>
+                    <td style="white-space:nowrap;"><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'achievement' %}'); return false;">View ({{ row.achievement_count }})</a></td>
+                    <td style="white-space:nowrap;"><a href="#" onclick="openNotesModal('{% url 'employee-notes' row.employee.pk 'escalation' %}'); return false;">View ({{ row.escalation_count }})</a></td>
                     <td>{{ row.employee.awards|default:"—" }}</td>
-                    <td>{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
-                    <td>{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
-                    <td>{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
-                    <td><a href="{% url 'employee-work' row.employee.pk %}">{{ row.ticket_count }}</a></td>
+                    <td style="white-space:nowrap;">{% if row.employee.rtb_efficiency is not None %}{{ row.employee.rtb_efficiency }}%{% else %}—{% endif %}</td>
+                    <td style="white-space:nowrap;">{% if row.employee.gsc_efficiency is not None %}{{ row.employee.gsc_efficiency }}%{% else %}—{% endif %}</td>
+                    <td style="white-space:nowrap;">{% if row.employee.ai_efficiency is not None %}{{ row.employee.ai_efficiency }}%{% else %}—{% endif %}</td>
+                    <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.ticket_count }}</a></td>
                 </tr>
             {% empty %}
                 <tr><td colspan="17">No team members yet.</td></tr>
