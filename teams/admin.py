@@ -221,7 +221,17 @@ class AzureDevOpsSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):
-    list_display = ("title", "employee", "source", "work_item_type", "state", "story_points", "closed_date")
-    list_filter = ("source", "work_item_type", "state")
-    search_fields = ("title", "external_id", "employee__name")
+    list_display = (
+        "title",
+        "employee",
+        "assigned_to_raw",
+        "source",
+        "work_item_type",
+        "state",
+        "priority",
+        "story_points",
+        "closed_date",
+    )
+    list_filter = ("source", "work_item_type", "state", "priority")
+    search_fields = ("title", "external_id", "employee__name", "assigned_to_raw", "tags")
     autocomplete_fields = ("employee",)

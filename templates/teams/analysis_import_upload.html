@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Analysis · Import User Stories{% endblock %}
+{% block content %}
+    <p><a href="{% url 'team-analysis' %}">&larr; Back to Analysis</a></p>
+    <h1>Import User Stories</h1>
+    <p style="color:var(--muted);max-width:560px;">
+        Upload an .xlsx or .csv export of user stories for the whole team. On the next screen
+        you'll map its columns to Title, Assignee, Type, State, Story Points, and more.
+    </p>
+    <form method="post" enctype="multipart/form-data" style="max-width:420px;">
+        {% csrf_token %}
+        <p>
+            <label for="file">File (.xlsx or .csv)</label>
+            <input type="file" name="file" id="file" accept=".xlsx,.csv" required>
+        </p>
+        <button class="btn" type="submit">Upload &amp; Continue</button>
+    </form>
+{% endblock %}

@@ -156,6 +156,14 @@ class WorkItem(models.Model):
     project_label = models.CharField(max_length=200, blank=True)
     area_path = models.CharField(max_length=200, blank=True)
     iteration_path = models.CharField(max_length=200, blank=True)
+    priority = models.PositiveSmallIntegerField(null=True, blank=True)
+    tags = models.CharField(max_length=300, blank=True)
+    assigned_to_raw = models.CharField(
+        "Assigned to (as imported)",
+        max_length=200,
+        blank=True,
+        help_text="The raw assignee name/email from the source, kept for traceability.",
+    )
     created_date = models.DateField(null=True, blank=True)
     closed_date = models.DateField(null=True, blank=True)
     url = models.URLField(blank=True)
@@ -174,6 +182,14 @@ class AzureDevOpsSettings(models.Model):
     )
     personal_access_token = models.CharField(
         max_length=300, blank=True, help_text="Shared PAT used for all Azure DevOps queries."
+    )
+    team_query_url = models.URLField(
+        "Team-wide user stories query URL",
+        blank=True,
+        help_text=(
+            "Shared query link returning user stories for the whole team (across assignees), "
+            "used by the Analysis tab. e.g. https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+        ),
     )
 
     class Meta:

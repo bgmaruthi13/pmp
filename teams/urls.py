@@ -5,6 +5,9 @@ from . import views
 urlpatterns = [
     path("", views.team_list, name="team-org"),
     path("efficiency/", views.team_efficiency, name="team-efficiency"),
+    path("analysis/", views.analysis_home, name="team-analysis"),
+    path("analysis/import/", views.analysis_import_upload, name="analysis-import-upload"),
+    path("analysis/import/map/", views.analysis_import_map, name="analysis-import-map"),
     path("<int:pk>/edit/", views.employee_edit, name="employee-edit"),
     path("<int:pk>/projects/edit/", views.employee_projects_edit, name="employee-projects-edit"),
     path("<int:pk>/work/", views.employee_work, name="employee-work"),

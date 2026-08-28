@@ -20,6 +20,16 @@ from .models import AzureDevOpsSettings, Employee, EmployeeNote, EmployeeNoteAtt
 
 NOTE_CATEGORY_LABELS = dict(EmployeeNote.Category.choices)
 
+
+def _clean_ado_item(item):
+    """Pop the assignment-matching keys out of a fetch_work_items() dict, leaving only
+    valid WorkItem field values (with assigned_to_raw filled in for traceability)."""
+    item = dict(item)
+    name = item.pop("assigned_to_name", "")
+    email = item.pop("assigned_to_email", "")
+    item["assigned_to_raw"] = name or email
+    return item
+
 MAX_WORK_IMPORT_ROWS = 1000
 
 WORK_IMPORT_FIELDS = [
@@ -33,6 +43,10 @@ WORK_IMPORT_FIELDS = [
     {"key": "closed_date", "label": "Closed Date", "required": False},
     {"key": "external_id", "label": "External ID", "required": False},
     {"key": "url", "label": "URL", "required": False},
+]
+
+ANALYSIS_IMPORT_FIELDS = WORK_IMPORT_FIELDS + [
+    {"key": "assignee", "label": "Assignee (name or email)", "required": True},
 ]
 
 
@@ -235,7 +249,7 @@ def employee_work(request, pk):
                 else:
                     employee.work_items.filter(source=WorkItem.Source.AZURE_DEVOPS).delete()
                     WorkItem.objects.bulk_create(
-                        WorkItem(employee=employee, source=WorkItem.Source.AZURE_DEVOPS, **item)
+                        WorkItem(employee=employee, source=WorkItem.Source.AZURE_DEVOPS, **_clean_ado_item(item))
                         for item in fetched
                     )
                     messages.success(request, f"Synced {len(fetched)} work item(s) from Azure DevOps.")
@@ -507,3 +521,221 @@ def employee_note_attachment_delete(request, pk, category, note_id, attachment_i
         return render(request, "teams/_notes_list.html", _notes_list_context(employee, category))
 
     return redirect("employee-notes", pk=pk, category=category)
+
+
+def _employee_lookup_maps():
+    employees = list(Employee.objects.all())
+    by_email = {e.email.strip().lower(): e for e in employees if e.email}
+    by_name = {e.name.strip().lower(): e for e in employees}
+    return by_email, by_name
+
+
+def _match_employee(by_email, by_name, email="", name=""):
+    email = (email or "").strip().lower()
+    name = (name or "").strip().lower()
+    if email and email in by_email:
+        return by_email[email]
+    if name and name in by_name:
+        return by_name[name]
+    return None
+
+
+def _import_team_work_items(items, source, upsert):
+    """Match each item's assignee to an Employee and save it as a WorkItem.
+    upsert=True keeps at most one row per (employee, source, external_id) - safe for
+    Azure DevOps, which has stable IDs. upsert=False always inserts a new row - used
+    for Excel/CSV imports, whose rows may not carry a unique external_id."""
+    by_email, by_name = _employee_lookup_maps()
+    matched = 0
+    unmatched = []
+    employees_touched = set()
+
+    for raw_item in items:
+        item = dict(raw_item)
+        assigned_name = item.pop("assigned_to_name", "")
+        assigned_email = item.pop("assigned_to_email", "")
+        employee = _match_employee(by_email, by_name, assigned_email, assigned_name)
+        if not employee:
+            label = assigned_name or assigned_email or "(unassigned)"
+            unmatched.append(f"{label} — {item.get('title', '')[:40]}")
+            continue
+
+        item["assigned_to_raw"] = assigned_name or assigned_email
+        external_id = item.pop("external_id", "")
+        if upsert and external_id:
+            WorkItem.objects.update_or_create(
+                employee=employee, source=source, external_id=external_id, defaults=item
+            )
+        else:
+            WorkItem.objects.create(employee=employee, source=source, external_id=external_id, **item)
+        matched += 1
+        employees_touched.add(employee.pk)
+
+    return {"matched": matched, "unmatched": unmatched, "employee_count": len(employees_touched)}
+
+
+def _flash_import_result(request, result):
+    if result["matched"] == 0 and not result["unmatched"]:
+        messages.warning(request, "No user stories were found.")
+        return
+    base = f"Imported {result['matched']} item(s) across {result['employee_count']} employee(s)."
+    if result["unmatched"]:
+        preview = "; ".join(result["unmatched"][:8])
+        more = f" (+{len(result['unmatched']) - 8} more)" if len(result["unmatched"]) > 8 else ""
+        messages.warning(
+            request,
+            f"{base} {len(result['unmatched'])} item(s) skipped — no employee matched: {preview}{more}",
+        )
+    else:
+        messages.success(request, base)
+
+
+def _analysis_summary():
+    employees = Employee.objects.prefetch_related("work_items").order_by("name")
+    rows = []
+    total_items = 0
+    total_points = 0
+    for employee in employees:
+        items = list(employee.work_items.all())
+        if not items:
+            continue
+        points = sum((i.story_points or 0) for i in items)
+        rows.append({"employee": employee, "item_count": len(items), "points": points})
+        total_items += len(items)
+        total_points += points
+    rows.sort(key=lambda r: -r["item_count"])
+    return {
+        "rows": rows,
+        "total_items": total_items,
+        "total_points": total_points,
+        "employee_count": len(rows),
+    }
+
+
+def analysis_home(request):
+    settings_obj = AzureDevOpsSettings.load()
+    ado_error = None
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        if request.POST.get("action") == "ado_sync":
+            query_url = request.POST.get("query_url", "").strip()
+            settings_obj.team_query_url = query_url
+            settings_obj.save(update_fields=["team_query_url"])
+
+            if not query_url:
+                ado_error = "Add a query URL first."
+            elif not settings_obj.personal_access_token:
+                ado_error = "No shared PAT is configured. Ask an admin to set one under Admin > Teams > Azure DevOps settings."
+            else:
+                try:
+                    fetched = fetch_work_items(query_url, settings_obj.personal_access_token)
+                except AzureDevOpsError as exc:
+                    ado_error = str(exc)
+                else:
+                    result = _import_team_work_items(fetched, source=WorkItem.Source.AZURE_DEVOPS, upsert=True)
+                    _flash_import_result(request, result)
+                    return redirect("team-analysis")
+
+    return render(
+        request,
+        "teams/analysis.html",
+        {
+            "settings_obj": settings_obj,
+            "ado_error": ado_error,
+            "pat_configured": bool(settings_obj.personal_access_token),
+            "summary": _analysis_summary(),
+        },
+    )
+
+
+@login_required
+def analysis_import_upload(request):
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            messages.error(request, "Choose an .xlsx or .csv file to upload.")
+            return redirect("analysis-import-upload")
+
+        try:
+            headers, data_rows = _read_tabular_file(upload)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("analysis-import-upload")
+
+        if not any(headers) or not data_rows:
+            messages.error(request, "That file needs a header row and at least one data row.")
+            return redirect("analysis-import-upload")
+
+        request.session["analysis_import_headers"] = headers
+        request.session["analysis_import_rows"] = data_rows[:MAX_WORK_IMPORT_ROWS]
+        return redirect("analysis-import-map")
+
+    return render(request, "teams/analysis_import_upload.html")
+
+
+@login_required
+def analysis_import_map(request):
+    headers = request.session.get("analysis_import_headers")
+    rows = request.session.get("analysis_import_rows")
+    if not headers or not rows:
+        messages.error(request, "Upload a file first.")
+        return redirect("analysis-import-upload")
+
+    if request.method == "POST":
+        mapping = {f["key"]: request.POST.get(f"map_{f['key']}", "") for f in ANALYSIS_IMPORT_FIELDS}
+        missing_required = [f["label"] for f in ANALYSIS_IMPORT_FIELDS if f["required"] and not mapping[f["key"]]]
+        if missing_required:
+            messages.error(request, f"Map a column to: {', '.join(missing_required)}.")
+            return render(
+                request,
+                "teams/analysis_import_map.html",
+                {"headers": headers, "rows": rows[:8], "fields": ANALYSIS_IMPORT_FIELDS, "mapping": mapping},
+            )
+
+        col_index = {header: i for i, header in enumerate(headers)}
+
+        def cell(row, key):
+            header = mapping[key]
+            idx = col_index.get(header)
+            if not header or idx is None or idx >= len(row):
+                return ""
+            return row[idx]
+
+        items = []
+        for row in rows:
+            title = cell(row, "title")
+            if not title:
+                continue
+            assignee = cell(row, "assignee")
+            items.append(
+                {
+                    "title": title,
+                    "work_item_type": cell(row, "work_item_type"),
+                    "state": cell(row, "state"),
+                    "story_points": _parse_story_points(cell(row, "story_points")),
+                    "area_path": cell(row, "area_path"),
+                    "iteration_path": cell(row, "iteration_path"),
+                    "created_date": _parse_work_date(cell(row, "created_date")),
+                    "closed_date": _parse_work_date(cell(row, "closed_date")),
+                    "external_id": cell(row, "external_id"),
+                    "url": cell(row, "url"),
+                    "assigned_to_name": assignee,
+                    "assigned_to_email": assignee,
+                }
+            )
+
+        result = _import_team_work_items(items, source=WorkItem.Source.EXCEL, upsert=False)
+        del request.session["analysis_import_headers"]
+        del request.session["analysis_import_rows"]
+        _flash_import_result(request, result)
+        return redirect("team-analysis")
+
+    mapping = {f["key"]: _guess_work_column(headers, f["key"]) for f in ANALYSIS_IMPORT_FIELDS}
+    return render(
+        request,
+        "teams/analysis_import_map.html",
+        {"headers": headers, "rows": rows[:8], "fields": ANALYSIS_IMPORT_FIELDS, "mapping": mapping},
+    )

@@ -16,8 +16,11 @@ FIELDS = [
     "System.TeamProject",
     "System.AreaPath",
     "System.IterationPath",
+    "System.AssignedTo",
+    "System.Tags",
     "System.CreatedDate",
     "Microsoft.VSTS.Scheduling.StoryPoints",
+    "Microsoft.VSTS.Common.Priority",
     "Microsoft.VSTS.Common.ClosedDate",
 ]
 
@@ -58,6 +61,21 @@ def _parse_date(value):
         return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
     except ValueError:
         return None
+
+
+def _parse_assigned_to(value):
+    """AssignedTo comes back as an IdentityRef dict on most orgs, or a plain
+    "Display Name <email>" string on some legacy ones."""
+    if isinstance(value, dict):
+        name = value.get("displayName", "") or ""
+        email = value.get("uniqueName") or value.get("mail") or ""
+        return name, email
+    if isinstance(value, str) and value:
+        if "<" in value and value.endswith(">"):
+            name, _, rest = value.partition("<")
+            return name.strip(), rest.rstrip(">").strip()
+        return value, ""
+    return "", ""
 
 
 def fetch_work_items(query_url, pat):
@@ -116,6 +134,7 @@ def fetch_work_items(query_url, pat):
         for entry in resp.json().get("value", []):
             fields = entry.get("fields", {})
             work_item_id = entry.get("id")
+            assigned_to_name, assigned_to_email = _parse_assigned_to(fields.get("System.AssignedTo"))
             items.append(
                 {
                     "external_id": str(work_item_id or ""),
@@ -126,9 +145,13 @@ def fetch_work_items(query_url, pat):
                     "area_path": fields.get("System.AreaPath", ""),
                     "iteration_path": fields.get("System.IterationPath", ""),
                     "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
+                    "priority": fields.get("Microsoft.VSTS.Common.Priority"),
+                    "tags": fields.get("System.Tags", ""),
                     "created_date": _parse_date(fields.get("System.CreatedDate")),
                     "closed_date": _parse_date(fields.get("Microsoft.VSTS.Common.ClosedDate")),
                     "url": f"{base_url}/{organization}/{project}/_workitems/edit/{work_item_id}",
+                    "assigned_to_name": assigned_to_name,
+                    "assigned_to_email": assigned_to_email,
                 }
             )
     return items

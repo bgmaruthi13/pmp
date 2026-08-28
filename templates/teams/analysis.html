@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Analysis · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <div class="tabs">
+        <a href="{% url 'team-org' %}">Directory</a>
+        <a href="{% url 'team-efficiency' %}">Efficiency</a>
+        <a href="{% url 'team-analysis' %}" class="active">Analysis</a>
+    </div>
+    <p style="color:var(--muted);max-width:760px;">
+        Bring in user stories for the whole team from Azure DevOps or an Excel/CSV export. Each
+        item's assignee is matched to a team member by email first, then by name, so it also shows
+        up on that person's own work &amp; analysis page.
+    </p>
+
+    <h3 style="margin-bottom:0.4rem;">Azure DevOps</h3>
+    {% if not pat_configured %}
+        <p class="pill danger">No shared PAT configured yet &mdash; an admin can set one under Admin &rsaquo; Teams &rsaquo; Azure DevOps settings.</p>
+    {% endif %}
+    {% if ado_error %}
+        <p class="pill danger">{{ ado_error }}</p>
+    {% endif %}
+    {% if user.is_authenticated %}
+        <form method="post" style="max-width:640px;margin-bottom:0.5rem;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ado_sync">
+            <p>
+                <label for="query_url">Shared query URL for all user stories</label>
+                <input
+                    type="url" name="query_url" id="query_url" value="{{ settings_obj.team_query_url }}"
+                    placeholder="https://dev.azure.com/{org}/{project}/_workitems/query/{queryId}/"
+                >
+            </p>
+            <button class="btn" type="submit">Save &amp; Sync</button>
+        </form>
+        <p style="color:var(--muted);font-size:0.82rem;max-width:640px;">
+            Build a query in Azure DevOps returning every User Story you want tracked, across all
+            assignees, then paste its shared link here. Re-running sync updates existing items and
+            adds new ones by work item ID.
+        </p>
+    {% else %}
+        <p><a href="{% url 'admin:login' %}?next={{ request.path }}">Log in</a> to configure and sync.</p>
+    {% endif %}
+
+    <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Import from Excel / CSV</h3>
+    {% if user.is_authenticated %}
+        <p style="max-width:640px;color:var(--muted);">
+            Use this when Azure DevOps isn't available. Upload a file with one row per user story,
+            including a column for who it's assigned to (name or email) &mdash; you'll map its
+            columns to Title, Assignee, Type, State, Story Points, and more on the next screen.
+        </p>
+        <p><a class="btn" href="{% url 'analysis-import-upload' %}">Upload File</a></p>
+    {% else %}
+        <p><a href="{% url 'admin:login' %}?next={{ request.path }}">Log in</a> to import a file.</p>
+    {% endif %}
+
+    <h3 style="margin-top:1.5rem;margin-bottom:0.4rem;">Imported So Far</h3>
+    <div class="stat-row">
+        <div class="stat-tile"><div class="stat-value">{{ summary.total_items }}</div><div class="stat-label">Work items</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ summary.total_points|default:"0" }}</div><div class="stat-label">Story points</div></div>
+        <div class="stat-tile"><div class="stat-value">{{ summary.employee_count }}</div><div class="stat-label">Team members with data</div></div>
+    </div>
+
+    {% if summary.rows %}
+        <div class="table-wrap" style="margin-top:0.75rem;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Designation</th>
+                        <th>Work Items</th>
+                        <th>Story Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary.rows %}
+                        <tr>
+                            <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.employee.name }}</a></td>
+                            <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
+                            <td style="white-space:nowrap;">{{ row.item_count }}</td>
+                            <td style="white-space:nowrap;">{{ row.points }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color:var(--muted);">No work items imported yet.</p>
+    {% endif %}
+{% endblock %}

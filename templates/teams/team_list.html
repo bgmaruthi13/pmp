@@ -5,6 +5,7 @@
     <div class="tabs">
         <a href="{% url 'team-org' %}" class="active">Directory</a>
         <a href="{% url 'team-efficiency' %}">Efficiency</a>
+        <a href="{% url 'team-analysis' %}">Analysis</a>
     </div>
     {% if user.is_staff %}
         <p style="margin-top:0;">
