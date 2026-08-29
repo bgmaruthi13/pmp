@@ -1,5 +1,7 @@
 import uuid
 
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 
@@ -21,6 +23,9 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     lead = models.ForeignKey(
         Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="projects_led"
+    )
+    application = models.ForeignKey(
+        "Application", on_delete=models.SET_NULL, null=True, blank=True, related_name="projects"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -148,6 +153,8 @@ class Application(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=100, blank=True)
 
+    versions = GenericRelation("DocumentVersion")
+
     class Meta:
         ordering = ["name"]
 
@@ -182,6 +189,8 @@ class TransitionDocument(models.Model):
         help_text="Whether this document has actually been gathered and uploaded yet.",
     )
 
+    versions = GenericRelation("DocumentVersion")
+
     class Meta:
         ordering = ["order", "id"]
 
@@ -192,20 +201,53 @@ class TransitionDocument(models.Model):
         return reverse("transition-detail", args=[self.pk])
 
 
-def transition_document_attachment_path(instance, filename):
-    return f"transition_documents/{instance.document_id}/{filename}"
+class DocumentActivity(models.TextChoices):
+    INTRODUCTION = "introduction", "Introduction"
+    GOVERNANCE = "governance", "Governance & Transition Management"
+    APP_TECHNICAL = "app_technical", "Application & Technical Documentation"
+    INTEGRATION = "integration", "Integration & Interdependency Landscape"
+    OPERATIONS = "operations", "Operations & Support"
+    KNOWLEDGE_TRANSFER = "knowledge_transfer", "Knowledge Transfer"
+    COMPLIANCE = "compliance", "Compliance & Administrative"
+    AUDIT = "audit", "Audit & Compliance Checklist"
+    DEPLOYMENT = "deployment", "Deployment"
+    RISK = "risk", "Risk"
 
 
-class TransitionDocumentAttachment(models.Model):
-    document = models.ForeignKey(TransitionDocument, on_delete=models.CASCADE, related_name="attachments")
-    file = models.FileField(upload_to=transition_document_attachment_path)
+def document_version_path(instance, filename):
+    return f"document_versions/{instance.content_type_id}/{instance.object_id}/{filename}"
+
+
+class DocumentVersion(models.Model):
+    """A single uploaded file, versioned against whatever it belongs to (an
+    Application or a TransitionDocument today) via a generic relation, so both
+    kinds of documents share one upload/version-history mechanism. Each upload
+    is tagged with the activity that produced it and gets the next version
+    number for that parent object, regardless of activity."""
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    parent = GenericForeignKey("content_type", "object_id")
+    activity = models.CharField(max_length=30, choices=DocumentActivity.choices)
+    version = models.PositiveIntegerField(editable=False, default=0)
+    file = models.FileField(upload_to=document_version_path)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-uploaded_at"]
+        ordering = ["-version"]
 
     def __str__(self):
-        return self.filename()
+        return f"v{self.version} ({self.get_activity_display()})"
 
     def filename(self):
         return self.file.name.rsplit("/", 1)[-1]
+
+    def save(self, *args, **kwargs):
+        if not self.version:
+            last = (
+                DocumentVersion.objects.filter(content_type=self.content_type, object_id=self.object_id)
+                .order_by("-version")
+                .first()
+            )
+            self.version = (last.version if last else 0) + 1
+        super().save(*args, **kwargs)

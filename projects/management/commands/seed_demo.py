@@ -355,6 +355,22 @@ class Command(BaseCommand):
                 },
             )
 
+        # -- Link each project to the application it delivers ----------------
+        project_to_application = {
+            "ITR e-Filing Portal": "e-Filing Core Engine 4.0",
+            "TDS Reconciliation Engine": "TDS-CPC Integration Gateway",
+            "PAN-Aadhaar Linking Service": "Aadhaar e-KYC Connector",
+            "Refund Processing Pipeline": "Refund Banking Interface",
+            "Form 26AS Integration": "Form 26AS Sync Service",
+            "Taxpayer Grievance Redressal": "Taxpayer Grievance CRM",
+        }
+        for project_name, application_name in project_to_application.items():
+            application = Application.objects.filter(name=application_name).first()
+            project = projects.get(project_name)
+            if application and project and project.application_id != application.id:
+                project.application = application
+                project.save(update_fields=["application"])
+
         # -- Transition plan -----------------------------------------------
         system_names = ["CPC-ITR", "TRACES", "PFMS", "NSDL-PAN", "UIDAI-eKYC", "Payment Gateway"]
         systems = {n: TransitionSystem.objects.get_or_create(name=n)[0] for n in system_names}

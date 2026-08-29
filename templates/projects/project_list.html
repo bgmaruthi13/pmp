@@ -16,6 +16,7 @@
         <thead>
             <tr>
                 <th>Project</th>
+                <th>Application</th>
                 <th>Description</th>
                 <th>Lead</th>
                 <th>Created</th>
@@ -29,6 +30,7 @@
             {% for project in projects %}
                 <tr>
                     <td><a href="{{ project.get_absolute_url }}">{{ project.name }}</a></td>
+                    <td>{% if project.application %}<a href="{{ project.application.get_absolute_url }}">{{ project.application.name }}</a>{% else %}—{% endif %}</td>
                     <td>{{ project.description|default:"—" }}</td>
                     <td>{% if project.lead %}<a href="{{ project.lead.get_absolute_url }}">{{ project.lead.name }}</a>{% else %}—{% endif %}</td>
                     <td>{{ project.created_at|date:"d M Y" }}</td>
@@ -38,7 +40,7 @@
                     <td>{{ project.ticket_count }}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="8">No projects yet.</td></tr>
+                <tr><td colspan="9">No projects yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

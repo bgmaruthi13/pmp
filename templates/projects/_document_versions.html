@@ -1,0 +1,72 @@
+<h2 style="margin:0 0 0.25rem;color:var(--navy-dark);">{{ parent_title }}</h2>
+<p style="color:var(--muted);font-size:0.85rem;margin:0 0 1rem;">{{ parent_subtitle|default:"" }}</p>
+
+<div class="table-wrap" style="margin-bottom:1rem;">
+    <table>
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Activity</th>
+                <th>File</th>
+                <th>Uploaded</th>
+                {% if user.is_authenticated %}<th></th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in version_rows %}
+                <tr>
+                    <td>v{{ row.version.version }}</td>
+                    <td>{{ row.version.get_activity_display }}</td>
+                    <td><a href="{{ row.version.file.url }}" target="_blank" rel="noopener noreferrer">{{ row.version.filename }}</a></td>
+                    <td style="white-space:nowrap;">{{ row.version.uploaded_at|date:"d M Y, H:i" }}</td>
+                    {% if user.is_authenticated %}
+                        <td>
+                            <form
+                                method="post"
+                                action="{{ row.delete_url }}{% if in_modal %}?modal=1{% endif %}"
+                                style="display:inline;"
+                                {% if in_modal %}onsubmit="return confirm('Remove this version?') &amp;&amp; documentVersionAjaxSubmit(event);"{% else %}onsubmit="return confirm('Remove this version?');"{% endif %}
+                            >
+                                {% csrf_token %}
+                                <button type="submit" class="chip-remove" title="Remove version">&times;</button>
+                            </form>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% empty %}
+                <tr><td colspan="5" style="color:var(--muted);">No files uploaded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if user.is_authenticated %}
+    <form
+        method="post"
+        action="{{ upload_action }}{% if in_modal %}?modal=1{% endif %}"
+        enctype="multipart/form-data"
+        {% if in_modal %}onsubmit="return documentVersionAjaxSubmit(event);"{% endif %}
+    >
+        {% csrf_token %}
+        <p style="margin:0 0 0.6rem;">
+            <label for="dv-activity">Activity</label>
+            <select name="activity" id="dv-activity" required>
+                {% for value, label in activities %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <p style="margin:0 0 0.6rem;">
+            <input type="file" name="file" multiple required>
+        </p>
+        <button type="submit" class="btn" style="padding:0.3rem 0.7rem;font-size:0.85rem;">Upload as new version</button>
+    </form>
+{% else %}
+    <p style="color:var(--muted);font-size:0.85rem;">Log in to upload files.</p>
+{% endif %}
+
+{% if in_modal %}
+    <p style="margin-top:1rem;margin-bottom:0;">
+        <button class="btn" type="button" style="background:#8a97a6;" onclick="document.getElementById('transition-modal').close()">Close</button>
+    </p>
+{% endif %}

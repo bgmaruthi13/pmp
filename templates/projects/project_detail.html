@@ -2,7 +2,11 @@
 {% block title %}{{ project.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <h1>{{ project.name }}</h1>
-    <p>{{ project.description }}{% if project.lead %} · <small>Lead: {{ project.lead.name }}</small>{% endif %}</p>
+    <p>
+        {{ project.description }}
+        {% if project.lead %} · <small>Lead: {{ project.lead.name }}</small>{% endif %}
+        {% if project.application %} · <small>Application: <a href="{{ project.application.get_absolute_url }}">{{ project.application.name }}</a></small>{% endif %}
+    </p>
     {% if user.is_authenticated %}
         <p><a class="btn" href="{% url 'task-create' project.pk %}">+ New ticket</a></p>
     {% endif %}

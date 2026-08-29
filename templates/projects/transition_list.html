@@ -42,12 +42,12 @@
                     <td style="text-align:center;white-space:nowrap;">
                         <a
                             href="#"
-                            onclick="openTransitionModal('{% url 'transition-attachments' doc.pk %}?modal=1'); return false;"
+                            onclick="openTransitionModal('{% url 'transition-document-versions' doc.pk %}?modal=1'); return false;"
                             title="{% if doc.available %}Collected{% else %}Not yet collected{% endif %} — click to manage files"
                             style="text-decoration:none;"
                         >
                             <input type="checkbox" disabled {% if doc.available %}checked{% endif %} style="pointer-events:none;vertical-align:middle;">
-                            {% with cnt=doc.attachments.all|length %}{% if cnt %}<small style="color:var(--muted);">({{ cnt }})</small>{% endif %}{% endwith %}
+                            {% with cnt=doc.versions.all|length %}{% if cnt %}<small style="color:var(--muted);">({{ cnt }})</small>{% endif %}{% endwith %}
                         </a>
                     </td>
                 </tr>
@@ -72,7 +72,7 @@
             document.getElementById('transition-modal').showModal();
             loadTransitionContent(url);
         }
-        function transitionAjaxSubmit(event) {
+        function documentVersionAjaxSubmit(event) {
             event.preventDefault();
             var form = event.target;
             fetch(form.action, { method: 'POST', body: new FormData(form) })
