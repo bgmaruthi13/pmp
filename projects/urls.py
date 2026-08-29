@@ -11,6 +11,16 @@ urlpatterns = [
     path("applications/<int:pk>/", views.application_detail, name="application-detail"),
     path("transition/", views.transition_list, name="transition-list"),
     path("transition/<int:pk>/", views.transition_detail, name="transition-detail"),
+    path(
+        "transition/<int:pk>/attachments/",
+        views.transition_document_attachments,
+        name="transition-attachments",
+    ),
+    path(
+        "transition/<int:pk>/attachments/<int:attachment_id>/delete/",
+        views.transition_document_attachment_delete,
+        name="transition-attachment-delete",
+    ),
     path("<int:pk>/", views.project_detail, name="project-detail"),
     path("<int:project_pk>/tasks/new/", views.task_create, name="task-create"),
     path("tasks/<int:pk>/edit/", views.task_update, name="task-update"),

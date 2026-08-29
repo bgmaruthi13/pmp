@@ -190,3 +190,22 @@ class TransitionDocument(models.Model):
 
     def get_absolute_url(self):
         return reverse("transition-detail", args=[self.pk])
+
+
+def transition_document_attachment_path(instance, filename):
+    return f"transition_documents/{instance.document_id}/{filename}"
+
+
+class TransitionDocumentAttachment(models.Model):
+    document = models.ForeignKey(TransitionDocument, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to=transition_document_attachment_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return self.filename()
+
+    def filename(self):
+        return self.file.name.rsplit("/", 1)[-1]

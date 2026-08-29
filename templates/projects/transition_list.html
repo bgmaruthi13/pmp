@@ -9,9 +9,9 @@
     </div>
     <h1>Project Transition List</h1>
     <p style="color:var(--muted);max-width:760px;">
-        Every document this transition plan calls for, in one checklist &mdash; the
-        &ldquo;Digitized&rdquo; column shows whether it's actually been gathered yet.
-        {{ collected_count }} of {{ documents|length }} collected so far.
+        Every document this transition plan calls for, in one checklist. Click the
+        &ldquo;Digitized&rdquo; column to upload the actual file(s) for a document &mdash; it's checked
+        once at least one file is on hand. {{ collected_count }} of {{ documents|length }} collected so far.
     </p>
     <div class="table-wrap">
     <table>
@@ -39,7 +39,17 @@
                         <td>{% if system in doc.systems.all %}Y{% endif %}</td>
                     {% endfor %}
                     <td>{{ doc.comments }}</td>
-                    <td style="text-align:center;"><input type="checkbox" disabled {% if doc.available %}checked{% endif %}></td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        <a
+                            href="#"
+                            onclick="openTransitionModal('{% url 'transition-attachments' doc.pk %}?modal=1'); return false;"
+                            title="{% if doc.available %}Collected{% else %}Not yet collected{% endif %} — click to manage files"
+                            style="text-decoration:none;"
+                        >
+                            <input type="checkbox" disabled {% if doc.available %}checked{% endif %} style="pointer-events:none;vertical-align:middle;">
+                            {% with cnt=doc.attachments.all|length %}{% if cnt %}<small style="color:var(--muted);">({{ cnt }})</small>{% endif %}{% endwith %}
+                        </a>
+                    </td>
                 </tr>
             {% empty %}
                 <tr><td colspan="{{ systems|length|add:7 }}">No transition documents yet.</td></tr>
@@ -47,4 +57,29 @@
         </tbody>
     </table>
     </div>
+
+    <dialog id="transition-modal" style="width:min(600px, 94vw); border:none; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:1.5rem;">
+        <div id="transition-content">Loading&hellip;</div>
+    </dialog>
+    <script>
+        function loadTransitionContent(url) {
+            fetch(url)
+                .then(function (r) { return r.text(); })
+                .then(function (html) { document.getElementById('transition-content').innerHTML = html; })
+                .catch(function () { document.getElementById('transition-content').innerHTML = '<p>Could not load this data.</p>'; });
+        }
+        function openTransitionModal(url) {
+            document.getElementById('transition-modal').showModal();
+            loadTransitionContent(url);
+        }
+        function transitionAjaxSubmit(event) {
+            event.preventDefault();
+            var form = event.target;
+            fetch(form.action, { method: 'POST', body: new FormData(form) })
+                .then(function (r) { return r.text(); })
+                .then(function (html) { document.getElementById('transition-content').innerHTML = html; })
+                .catch(function () { document.getElementById('transition-content').innerHTML = '<p>Could not save.</p>'; });
+            return false;
+        }
+    </script>
 {% endblock %}

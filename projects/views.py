@@ -1,9 +1,17 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import ProjectForm, TaskForm
-from .models import Application, Project, Task, TransitionDocument, TransitionSystem
+from .models import (
+    Application,
+    Project,
+    Task,
+    TransitionDocument,
+    TransitionDocumentAttachment,
+    TransitionSystem,
+)
 
 
 def project_list(request):
@@ -86,7 +94,7 @@ def application_detail(request, pk):
 
 
 def transition_list(request):
-    documents = TransitionDocument.objects.prefetch_related("systems")
+    documents = TransitionDocument.objects.prefetch_related("systems", "attachments")
     systems = TransitionSystem.objects.all()
     return render(
         request,
@@ -100,5 +108,59 @@ def transition_list(request):
 
 
 def transition_detail(request, pk):
-    document = get_object_or_404(TransitionDocument.objects.prefetch_related("systems"), pk=pk)
+    document = get_object_or_404(
+        TransitionDocument.objects.prefetch_related("systems", "attachments"), pk=pk
+    )
     return render(request, "projects/transition_detail.html", {"document": document})
+
+
+def _sync_transition_available(document):
+    has_files = document.attachments.exists()
+    if document.available != has_files:
+        document.available = has_files
+        document.save(update_fields=["available"])
+
+
+def transition_document_attachments(request, pk):
+    # Deliberately not prefetching "attachments" here (unlike transition_detail/
+    # transition_list) — this view creates new attachments and then immediately
+    # re-checks document.attachments in the same request, so a prefetch cache
+    # populated before the create() would go stale and hide the new file.
+    document = get_object_or_404(TransitionDocument, pk=pk)
+    in_modal = bool(request.GET.get("modal"))
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        for uploaded_file in request.FILES.getlist("file"):
+            TransitionDocumentAttachment.objects.create(document=document, file=uploaded_file)
+        _sync_transition_available(document)
+        if in_modal:
+            return render(
+                request, "projects/_transition_attachments.html", {"document": document, "in_modal": True}
+            )
+        return redirect("transition-detail", pk=pk)
+
+    return render(
+        request, "projects/_transition_attachments.html", {"document": document, "in_modal": in_modal}
+    )
+
+
+def transition_document_attachment_delete(request, pk, attachment_id):
+    document = get_object_or_404(TransitionDocument, pk=pk)
+    attachment = get_object_or_404(TransitionDocumentAttachment, pk=attachment_id, document=document)
+    in_modal = bool(request.GET.get("modal"))
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        attachment.file.delete(save=False)
+        attachment.delete()
+        _sync_transition_available(document)
+        if in_modal:
+            return render(
+                request, "projects/_transition_attachments.html", {"document": document, "in_modal": True}
+            )
+        return redirect("transition-detail", pk=pk)
+
+    return redirect("transition-detail", pk=pk)
