@@ -2,21 +2,17 @@
 {% load project_extras %}
 {% block title %}Ticket Tracker · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    {% if scoped_project %}
-        {% include "projects/_project_tabs.html" %}
-    {% else %}
-        <div class="tabs">
-            <a href="{% url 'project-list' %}">Projects</a>
-            <a href="{% url 'application-list' %}">Applications</a>
-            <a href="{% url 'ticket-tracker' %}" class="active">Tickets</a>
-            <a href="{% url 'transition-list' %}">Transition Plan</a>
-        </div>
-        <h1>Ticket Tracker</h1>
-    {% endif %}
     <div class="tabs">
-        <a href="{% url 'ticket-tracker' %}{% if scoped_project %}?project={{ scoped_project.pk }}{% endif %}" class="{% if active_type == 'all' %}active{% endif %}">All</a>
-        <a href="?type=planned{% if scoped_project %}&project={{ scoped_project.pk }}{% endif %}" class="{% if active_type == 'planned' %}active{% endif %}">Planned</a>
-        <a href="?type=adhoc{% if scoped_project %}&project={{ scoped_project.pk }}{% endif %}" class="{% if active_type == 'adhoc' %}active{% endif %}">Ad Hoc</a>
+        <a href="{% url 'project-list' %}">Projects</a>
+        <a href="{% url 'application-list' %}">Applications</a>
+        <a href="{% url 'ticket-tracker' %}" class="active">Tickets</a>
+        <a href="{% url 'transition-list' %}">Transition Plan</a>
+    </div>
+    <h1>Ticket Tracker</h1>
+    <div class="tabs">
+        <a href="{% url 'ticket-tracker' %}" class="{% if active_type == 'all' %}active{% endif %}">All</a>
+        <a href="?type=planned" class="{% if active_type == 'planned' %}active{% endif %}">Planned</a>
+        <a href="?type=adhoc" class="{% if active_type == 'adhoc' %}active{% endif %}">Ad Hoc</a>
     </div>
     <div class="table-wrap">
     <table>
@@ -24,7 +20,7 @@
             <tr>
                 <th>Ticket</th>
                 <th>Title</th>
-                {% if not scoped_project %}<th>Project</th>{% endif %}
+                <th>Project</th>
                 <th>Area</th>
                 <th>Type</th>
                 <th>Assigned By</th>
@@ -40,7 +36,7 @@
                 <tr>
                     <td><a href="{{ ticket.get_absolute_url }}">{{ ticket.ticket_id }}</a></td>
                     <td><a href="{{ ticket.get_absolute_url }}">{{ ticket.title }}</a></td>
-                    {% if not scoped_project %}<td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.project.name }}</a></td>{% endif %}
+                    <td><a href="{{ ticket.project.get_absolute_url }}">{{ ticket.project.name }}</a></td>
                     <td>{{ ticket.area|default:"—" }}</td>
                     <td>{{ ticket.get_ticket_type_display }}</td>
                     <td>{{ ticket.assigned_by.name|default:"—" }}</td>
@@ -51,7 +47,7 @@
                     <td>{{ ticket.remarks }}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="{% if scoped_project %}10{% else %}11{% endif %}">No tickets yet.</td></tr>
+                <tr><td colspan="11">No tickets yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

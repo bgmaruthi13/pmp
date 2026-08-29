@@ -33,11 +33,7 @@ def project_detail(request, pk):
         {"label": status.label, "tasks": project.tasks.filter(status=status.value).select_related("assignee")}
         for status in Task.Status
     ]
-    return render(
-        request,
-        "projects/project_detail.html",
-        {"project": project, "columns": columns, "scoped_project": project, "active_project_tab": "overview"},
-    )
+    return render(request, "projects/project_detail.html", {"project": project, "columns": columns})
 
 
 @login_required
@@ -76,20 +72,10 @@ def ticket_tracker(request):
     ticket_type = request.GET.get("type")
     if ticket_type in {Task.TicketType.PLANNED, Task.TicketType.ADHOC}:
         tickets = tickets.filter(ticket_type=ticket_type)
-    scoped_project = None
-    project_id = request.GET.get("project")
-    if project_id:
-        scoped_project = get_object_or_404(Project, pk=project_id)
-        tickets = tickets.filter(project=scoped_project)
     return render(
         request,
         "projects/ticket_tracker.html",
-        {
-            "tickets": tickets,
-            "active_type": ticket_type or "all",
-            "scoped_project": scoped_project,
-            "active_project_tab": "tickets",
-        },
+        {"tickets": tickets, "active_type": ticket_type or "all"},
     )
 
 
@@ -114,11 +100,11 @@ def application_detail(request, pk):
 
 def transition_list(request):
     documents = TransitionDocument.objects.select_related("project").prefetch_related("systems", "versions")
-    scoped_project = None
+    selected_project = None
     project_id = request.GET.get("project")
     if project_id:
-        scoped_project = get_object_or_404(Project, pk=project_id)
-        documents = documents.filter(project=scoped_project)
+        selected_project = get_object_or_404(Project, pk=project_id)
+        documents = documents.filter(project=selected_project)
     systems = TransitionSystem.objects.all()
     return render(
         request,
@@ -127,8 +113,7 @@ def transition_list(request):
             "documents": documents,
             "systems": systems,
             "collected_count": sum(1 for d in documents if d.available),
-            "scoped_project": scoped_project,
-            "active_project_tab": "transition",
+            "selected_project": selected_project,
         },
     )
 

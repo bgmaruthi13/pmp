@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Transition Plan · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    {% if scoped_project %}
-        {% include "projects/_project_tabs.html" %}
+    <div class="tabs">
+        <a href="{% url 'project-list' %}">Projects</a>
+        <a href="{% url 'application-list' %}">Applications</a>
+        <a href="{% url 'ticket-tracker' %}">Tickets</a>
+        <a href="{% url 'transition-list' %}" class="active">Transition Plan</a>
+    </div>
+    {% if selected_project %}
+        <h1>Transition Plan &middot; {{ selected_project.name }}</h1>
         <p style="color:var(--muted);max-width:760px;">
             This project's own transition checklist &mdash; not shared with any other project.
             <a href="{% url 'transition-list' %}">View every project's documents &rarr;</a>
         </p>
     {% else %}
-        <div class="tabs">
-            <a href="{% url 'project-list' %}">Projects</a>
-            <a href="{% url 'application-list' %}">Applications</a>
-            <a href="{% url 'ticket-tracker' %}">Tickets</a>
-            <a href="{% url 'transition-list' %}" class="active">Transition Plan</a>
-        </div>
         <h1>Project Transition List</h1>
         <p style="color:var(--muted);max-width:760px;">
             Every project's transition documents, in one list &mdash; each belongs to exactly one
@@ -31,7 +31,7 @@
                 <th>Document</th>
                 <th>Purpose</th>
                 <th>Owner</th>
-                {% if not scoped_project %}<th>Project</th>{% endif %}
+                <th>Project</th>
                 {% for system in systems %}<th>{{ system.name }}</th>{% endfor %}
                 <th>Comments</th>
                 <th style="text-align:center;">Digitized</th>
@@ -45,9 +45,7 @@
                     <td><a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a></td>
                     <td>{{ doc.purpose }}</td>
                     <td>{{ doc.owner|default:"—" }}</td>
-                    {% if not scoped_project %}
-                        <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Unassigned</span>{% endif %}</td>
-                    {% endif %}
+                    <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Unassigned</span>{% endif %}</td>
                     {% for system in systems %}
                         <td>{% if system in doc.systems.all %}Y{% endif %}</td>
                     {% endfor %}
@@ -65,7 +63,7 @@
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="{% if scoped_project %}{{ systems|length|add:7 }}{% else %}{{ systems|length|add:8 }}{% endif %}">No transition documents yet.</td></tr>
+                <tr><td colspan="{{ systems|length|add:8 }}">No transition documents yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
