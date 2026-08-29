@@ -17,7 +17,10 @@
                 <tr>
                     <td>v{{ row.version.version }}</td>
                     <td>{{ row.version.get_activity_display }}</td>
-                    <td><a href="{{ row.version.file.url }}" target="_blank" rel="noopener noreferrer">{{ row.version.filename }}</a></td>
+                    <td>
+                        <a href="{{ row.version.file.url }}" target="_blank" rel="noopener noreferrer">{{ row.version.filename }}</a>
+                        {% if row.version.original_filename %}<div><small style="color:var(--muted);">{{ row.version.original_filename }}</small></div>{% endif %}
+                    </td>
                     <td style="white-space:nowrap;">{{ row.version.uploaded_at|date:"d M Y, H:i" }}</td>
                     {% if user.is_authenticated %}
                         <td>

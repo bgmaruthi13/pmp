@@ -4,6 +4,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.text import slugify
 
 from teams.models import Employee
 
@@ -223,7 +225,17 @@ class DocumentActivity(models.TextChoices):
 
 
 def document_version_path(instance, filename):
-    return f"document_versions/{instance.content_type_id}/{instance.object_id}/{filename}"
+    """Auto-generate a clean, consistent stored filename instead of using
+    whatever the uploader's file happened to be called locally — the parent's
+    title, the version number (already assigned by save() before this runs),
+    and the upload date. e.g. raci-matrix-v3-20260829.xlsx"""
+    ext = filename.rsplit(".", 1)[-1] if "." in filename else ""
+    slug = slugify(instance.parent_label())[:60] or "document"
+    date_str = timezone.now().strftime("%Y%m%d")
+    clean_name = f"{slug}-v{instance.version}-{date_str}"
+    if ext:
+        clean_name = f"{clean_name}.{ext}"
+    return f"document_versions/{instance.content_type_id}/{instance.object_id}/{clean_name}"
 
 
 class DocumentVersion(models.Model):
@@ -239,6 +251,10 @@ class DocumentVersion(models.Model):
     activity = models.CharField(max_length=30, choices=DocumentActivity.choices)
     version = models.PositiveIntegerField(editable=False, default=0)
     file = models.FileField(upload_to=document_version_path)
+    original_filename = models.CharField(
+        max_length=255, blank=True,
+        help_text="The file name as the uploader had it, kept for reference — the stored file itself is renamed to a consistent versioned name.",
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -250,6 +266,12 @@ class DocumentVersion(models.Model):
     def filename(self):
         return self.file.name.rsplit("/", 1)[-1]
 
+    def parent_label(self):
+        parent = self.parent
+        if parent is None:
+            return "document"
+        return getattr(parent, "document", None) or getattr(parent, "name", None) or "document"
+
     def save(self, *args, **kwargs):
         if not self.version:
             last = (
@@ -258,4 +280,6 @@ class DocumentVersion(models.Model):
                 .first()
             )
             self.version = (last.version if last else 0) + 1
+        if self.file and not self.original_filename:
+            self.original_filename = self.file.name.rsplit("/", 1)[-1]
         super().save(*args, **kwargs)
