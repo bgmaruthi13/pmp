@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Transition Plan · eSuvidha Ops Portal{% endblock %}
 {% block content %}
+    <div class="tabs">
+        <a href="{% url 'project-list' %}">Projects</a>
+        <a href="{% url 'application-list' %}">Applications</a>
+        <a href="{% url 'ticket-tracker' %}">Tickets</a>
+        <a href="{% url 'transition-list' %}" class="active">Transition Plan</a>
+    </div>
     <h1>Project Transition List</h1>
     <div class="table-wrap">
     <table>

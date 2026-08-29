@@ -14,6 +14,12 @@ _SENSITIVITY_PILLS = {
     "4-medium": "info",
 }
 
+_CONFIDENCE_PILLS = {
+    "low": "danger",
+    "medium": "warning",
+    "high": "success",
+}
+
 
 @register.filter
 def status_pill(status):
@@ -23,3 +29,8 @@ def status_pill(status):
 @register.filter
 def sensitivity_pill(sensitivity):
     return _SENSITIVITY_PILLS.get(sensitivity, "")
+
+
+@register.filter
+def confidence_pill(confidence):
+    return _CONFIDENCE_PILLS.get(confidence, "")

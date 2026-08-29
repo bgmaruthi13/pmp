@@ -21,4 +21,38 @@
         </tbody>
     </table>
     </div>
+
+    <h2 style="margin-top:2rem;">Backup &amp; Disaster Recovery</h2>
+    <div class="table-wrap" style="max-width: 600px;">
+    <table>
+        <tbody>
+            <tr><th>P Level</th><td>{{ application.p_level|default:"—" }}</td></tr>
+            <tr><th>GlobalGov lvl.1</th><td>{{ application.globalgov_lvl1|default:"—" }}</td></tr>
+            <tr><th>GlobalGov lvl.2</th><td>{{ application.globalgov_lvl2|default:"—" }}</td></tr>
+            <tr><th>Backup Status</th><td>{{ application.backup_status|default:"—" }}</td></tr>
+            <tr><th>Backup Solution</th><td>{{ application.backup_solution|default:"—" }}</td></tr>
+            <tr><th>Backup Coverage Level</th><td>{{ application.backup_coverage_level|default:"—" }}</td></tr>
+            <tr>
+                <th>Confidence to Rebuild</th>
+                <td>
+                    {% if application.rebuild_confidence %}
+                        <span class="pill {{ application.rebuild_confidence|confidence_pill }}">{{ application.get_rebuild_confidence_display }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            <tr><th>Date of Last Backup</th><td>{{ application.last_backup_date|default:"—" }}</td></tr>
+            <tr><th>Date of Last Restore</th><td>{{ application.last_restore_date|default:"—" }}</td></tr>
+            <tr><th>Last Rebuilt Using Backup</th><td>{{ application.last_rebuild_date|default:"—" }}</td></tr>
+            <tr><th>Known Limitations / Risks</th><td>{{ application.backup_limitations|default:"—" }}</td></tr>
+            <tr><th>Status</th><td>{{ application.status|default:"—" }}</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    {% if application.description %}
+        <h2 style="margin-top:2rem;">Description</h2>
+        <p style="max-width:700px;color:var(--muted);">{{ application.description }}</p>
+    {% endif %}
 {% endblock %}

@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Projects · eSuvidha Ops Portal{% endblock %}
 {% block content %}
+    <div class="tabs">
+        <a href="{% url 'project-list' %}" class="active">Projects</a>
+        <a href="{% url 'application-list' %}">Applications</a>
+        <a href="{% url 'ticket-tracker' %}">Tickets</a>
+        <a href="{% url 'transition-list' %}">Transition Plan</a>
+    </div>
     <h1>Projects</h1>
     {% if user.is_authenticated %}
         <p><a class="btn" href="{% url 'project-create' %}">+ New project</a></p>

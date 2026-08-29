@@ -97,6 +97,11 @@ class Application(models.Model):
         IN_HOUSE = "in_house", "In House Development"
         SOFTWARE_PACKAGE = "software_package", "Software Package"
 
+    class RebuildConfidence(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+
     global_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=200)
     sensitivity = models.CharField(max_length=20, choices=Sensitivity.choices, default=Sensitivity.HIGH)
@@ -109,6 +114,35 @@ class Application(models.Model):
     procurement_type = models.CharField(max_length=30, choices=ProcurementType.choices, blank=True)
     officer = models.CharField(max_length=150, blank=True)
     country = models.CharField(max_length=100, blank=True)
+
+    # -- Backup / disaster-recovery posture --
+    p_level = models.CharField("P Level", max_length=20, blank=True)
+    globalgov_lvl1 = models.CharField("GlobalGov lvl.1", max_length=150, blank=True)
+    globalgov_lvl2 = models.CharField("GlobalGov lvl.2", max_length=150, blank=True)
+    backup_status = models.CharField(max_length=150, blank=True)
+    backup_solution = models.CharField(
+        "Backup solution used", max_length=300, blank=True,
+        help_text="e.g. Veeam, TSM, Commvault, BRMS.",
+    )
+    backup_coverage_level = models.CharField(
+        "Backup coverage level", max_length=200, blank=True,
+        help_text="e.g. Total, Partial, No backup.",
+    )
+    rebuild_confidence = models.CharField(
+        "Confidence to rebuild if erased in production",
+        max_length=10, choices=RebuildConfidence.choices, blank=True,
+    )
+    last_backup_date = models.CharField("Date of last backup", max_length=100, blank=True)
+    last_restore_date = models.CharField("Date of last data restore", max_length=100, blank=True)
+    last_rebuild_date = models.CharField(
+        "Last date app rebuilt using the backup", max_length=100, blank=True,
+        help_text="Free text, since sources record this as either a date or a note (e.g. 'Never').",
+    )
+    backup_limitations = models.TextField(
+        "Known limitations or risks regarding backup/recoverability", blank=True,
+    )
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=100, blank=True)
 
     class Meta:
         ordering = ["name"]

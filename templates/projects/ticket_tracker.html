@@ -2,6 +2,12 @@
 {% load project_extras %}
 {% block title %}Ticket Tracker · eSuvidha Ops Portal{% endblock %}
 {% block content %}
+    <div class="tabs">
+        <a href="{% url 'project-list' %}">Projects</a>
+        <a href="{% url 'application-list' %}">Applications</a>
+        <a href="{% url 'ticket-tracker' %}" class="active">Tickets</a>
+        <a href="{% url 'transition-list' %}">Transition Plan</a>
+    </div>
     <h1>Ticket Tracker</h1>
     <div class="tabs">
         <a href="{% url 'ticket-tracker' %}" class="{% if active_type == 'all' %}active{% endif %}">All</a>
