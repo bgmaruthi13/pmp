@@ -91,7 +91,11 @@ def transition_list(request):
     return render(
         request,
         "projects/transition_list.html",
-        {"documents": documents, "systems": systems},
+        {
+            "documents": documents,
+            "systems": systems,
+            "collected_count": sum(1 for d in documents if d.available),
+        },
     )
 
 

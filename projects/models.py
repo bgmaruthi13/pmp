@@ -176,6 +176,11 @@ class TransitionDocument(models.Model):
     systems = models.ManyToManyField(TransitionSystem, blank=True, related_name="documents")
     comments = models.CharField(max_length=200, blank=True)
     order = models.PositiveIntegerField(default=0)
+    available = models.BooleanField(
+        "Document collected / digitized",
+        default=False,
+        help_text="Whether this document has actually been gathered and uploaded yet.",
+    )
 
     class Meta:
         ordering = ["order", "id"]

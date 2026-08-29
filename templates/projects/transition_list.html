@@ -8,6 +8,11 @@
         <a href="{% url 'transition-list' %}" class="active">Transition Plan</a>
     </div>
     <h1>Project Transition List</h1>
+    <p style="color:var(--muted);max-width:760px;">
+        Every document this transition plan calls for, in one checklist &mdash; the
+        &ldquo;Digitized&rdquo; column shows whether it's actually been gathered yet.
+        {{ collected_count }} of {{ documents|length }} collected so far.
+    </p>
     <div class="table-wrap">
     <table>
         <thead>
@@ -19,6 +24,7 @@
                 <th>Owner</th>
                 {% for system in systems %}<th>{{ system.name }}</th>{% endfor %}
                 <th>Comments</th>
+                <th style="text-align:center;">Digitized</th>
             </tr>
         </thead>
         <tbody>
@@ -33,9 +39,10 @@
                         <td>{% if system in doc.systems.all %}Y{% endif %}</td>
                     {% endfor %}
                     <td>{{ doc.comments }}</td>
+                    <td style="text-align:center;"><input type="checkbox" disabled {% if doc.available %}checked{% endif %}></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="{{ systems|length|add:6 }}">No transition documents yet.</td></tr>
+                <tr><td colspan="{{ systems|length|add:7 }}">No transition documents yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

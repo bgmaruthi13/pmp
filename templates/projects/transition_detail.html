@@ -18,6 +18,16 @@
                 </td>
             </tr>
             <tr><th>Comments</th><td>{{ document.comments|default:"—" }}</td></tr>
+            <tr>
+                <th>Digitized</th>
+                <td>
+                    {% if document.available %}
+                        <span class="pill success">Collected</span>
+                    {% else %}
+                        <span class="pill warning">Not yet collected</span>
+                    {% endif %}
+                </td>
+            </tr>
         </tbody>
     </table>
     </div>
