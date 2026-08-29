@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}New transition document{% else %}Edit {{ template_obj.document }}{% endif %} · eSuvidha Ops Portal{% endblock %}
+{% block content %}
+    <p><a href="{% url 'transition-list' %}">&larr; Back to Transition Plan</a></p>
+    <h1>{% if is_new %}New transition document{% else %}Edit {{ template_obj.document }}{% endif %}</h1>
+    <p style="color:var(--muted);max-width:640px;">
+        {% if is_new %}
+            This creates a new checklist item and adds it to every project's transition plan at once.
+        {% else %}
+            This is the shared definition for this checklist item &mdash; saving changes here updates it on
+            every project's transition plan immediately.
+        {% endif %}
+    </p>
+    <form method="post" style="max-width:640px;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Save</button>
+    </form>
+
+    {% if not is_new %}
+        <form method="post" action="{% url 'transition-template-archive' template_obj.pk %}" style="margin-top:1.5rem;"
+              onsubmit="return confirm('Archive this checklist item? It will disappear from every project\'s active transition plan, but any files already uploaded against it are kept.');">
+            {% csrf_token %}
+            <button class="btn" type="submit" style="background:#a1402a;">Archive this item</button>
+        </form>
+    {% endif %}
+{% endblock %}

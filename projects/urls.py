@@ -20,6 +20,17 @@ urlpatterns = [
         name="application-document-version-delete",
     ),
     path("transition/", views.transition_list, name="transition-list"),
+    path("transition/templates/new/", views.transition_template_create, name="transition-template-create"),
+    path(
+        "transition/templates/<int:pk>/edit/",
+        views.transition_template_edit,
+        name="transition-template-edit",
+    ),
+    path(
+        "transition/templates/<int:pk>/archive/",
+        views.transition_template_archive,
+        name="transition-template-archive",
+    ),
     path("transition/<int:pk>/", views.transition_detail, name="transition-detail"),
     path(
         "transition/<int:pk>/versions/",

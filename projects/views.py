@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.contenttypes.models import ContentType
@@ -5,7 +6,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import ProjectForm, TaskForm
+from .forms import ProjectForm, TaskForm, TransitionDocumentTemplateForm
 from .models import (
     Application,
     DocumentActivity,
@@ -13,8 +14,21 @@ from .models import (
     Project,
     Task,
     TransitionDocument,
+    TransitionDocumentTemplate,
     TransitionSystem,
 )
+
+
+def _seed_transition_documents(project):
+    """Give a project one TransitionDocument per active template, so every
+    project — including one created after a template was added — starts with
+    the current full checklist."""
+    TransitionDocument.objects.bulk_create(
+        [
+            TransitionDocument(template=template, project=project)
+            for template in TransitionDocumentTemplate.objects.filter(archived=False)
+        ]
+    )
 
 
 def project_list(request):
@@ -41,6 +55,7 @@ def project_create(request):
     form = ProjectForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         project = form.save()
+        _seed_transition_documents(project)
         return redirect(project)
     return render(request, "projects/project_form.html", {"form": form})
 
@@ -99,8 +114,10 @@ def application_detail(request, pk):
 
 
 def transition_list(request):
-    documents = TransitionDocument.objects.select_related("project", "template").prefetch_related(
-        "template__systems", "versions"
+    documents = (
+        TransitionDocument.objects.select_related("project", "template")
+        .prefetch_related("template__systems", "versions")
+        .exclude(template__archived=True)
     )
     selected_project = None
     project_id = request.GET.get("project")
@@ -118,6 +135,46 @@ def transition_list(request):
             "selected_project": selected_project,
         },
     )
+
+
+@login_required
+def transition_template_create(request):
+    form = TransitionDocumentTemplateForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        template = form.save()
+        TransitionDocument.objects.bulk_create(
+            [TransitionDocument(template=template, project=project) for project in Project.objects.all()]
+        )
+        messages.success(request, f'Added "{template.document}" to every project’s transition plan.')
+        return redirect("transition-list")
+    return render(request, "projects/transition_template_form.html", {"form": form, "is_new": True})
+
+
+@login_required
+def transition_template_edit(request, pk):
+    template = get_object_or_404(TransitionDocumentTemplate, pk=pk)
+    form = TransitionDocumentTemplateForm(request.POST or None, instance=template)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f'Updated "{template.document}" — the change applies to every project.')
+        return redirect("transition-list")
+    return render(
+        request,
+        "projects/transition_template_form.html",
+        {"form": form, "is_new": False, "template_obj": template},
+    )
+
+
+@login_required
+def transition_template_archive(request, pk):
+    template = get_object_or_404(TransitionDocumentTemplate, pk=pk)
+    if request.method == "POST":
+        template.archived = True
+        template.save(update_fields=["archived"])
+        messages.success(
+            request, f'Archived "{template.document}" — it’s now hidden from every project’s checklist.'
+        )
+    return redirect("transition-list")
 
 
 def transition_detail(request, pk):

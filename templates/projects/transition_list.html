@@ -21,6 +21,9 @@
         </p>
     {% endif %}
     <p style="color:var(--muted);max-width:760px;">{{ collected_count }} of {{ documents|length }} collected so far.</p>
+    {% if user.is_authenticated %}
+        <p><a class="btn" href="{% url 'transition-template-create' %}">+ Add transition document</a></p>
+    {% endif %}
     <div class="table-wrap">
     <table>
         <thead>
@@ -41,7 +44,12 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ doc.category }}</td>
-                    <td><a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a></td>
+                    <td>
+                        <a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a>
+                        {% if user.is_authenticated %}
+                            <div><small><a href="{% url 'transition-template-edit' doc.template_id %}">Edit</a></small></div>
+                        {% endif %}
+                    </td>
                     <td>{{ doc.purpose }}</td>
                     <td>{{ doc.owner|default:"—" }}</td>
                     <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Unassigned</span>{% endif %}</td>

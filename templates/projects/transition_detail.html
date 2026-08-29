@@ -3,6 +3,9 @@
 {% block content %}
     <p><a href="{% url 'transition-list' %}">&larr; Back to Transition Plan</a></p>
     <h1>{{ document.document }}</h1>
+    {% if user.is_authenticated %}
+        <p><a class="btn" href="{% url 'transition-template-edit' document.template_id %}">Edit</a></p>
+    {% endif %}
     <div class="table-wrap" style="max-width: 600px;">
     <table>
         <tbody>

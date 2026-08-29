@@ -121,6 +121,10 @@
             border-radius: var(--radius-sm); font-family: inherit; font-size: 0.9rem;
         }
         input:focus, textarea:focus, select:focus { outline: 2px solid var(--saffron); outline-offset: 1px; border-color: var(--navy); }
+        input[type="checkbox"], input[type="radio"] { width: auto; padding: 0; }
+        label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) {
+            display: flex; align-items: center; gap: 0.4rem; font-weight: 500; margin: 0.3rem 0;
+        }
         .project-list { list-style: none; padding: 0; }
         .project-list li { padding: 0.75rem 0; border-bottom: 1px solid #e0e6ec; }
         .tabs { margin-bottom: 1.1rem; display: flex; gap: 0.4rem; }
