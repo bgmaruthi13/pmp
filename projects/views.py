@@ -104,7 +104,7 @@ def transition_list(request):
     project_id = request.GET.get("project")
     if project_id:
         selected_project = get_object_or_404(Project, pk=project_id)
-        documents = documents.filter(Q(project=selected_project) | Q(project__isnull=True))
+        documents = documents.filter(project=selected_project)
     systems = TransitionSystem.objects.all()
     return render(
         request,

@@ -10,15 +10,15 @@
     {% if selected_project %}
         <h1>Transition Plan &middot; {{ selected_project.name }}</h1>
         <p style="color:var(--muted);max-width:760px;">
-            Documents scoped to this project, plus every shared/generic checklist item.
-            <a href="{% url 'transition-list' %}">View the full unfiltered checklist &rarr;</a>
+            This project's own transition checklist &mdash; not shared with any other project.
+            <a href="{% url 'transition-list' %}">View every project's documents &rarr;</a>
         </p>
     {% else %}
         <h1>Project Transition List</h1>
         <p style="color:var(--muted);max-width:760px;">
-            Every document this transition plan calls for, in one checklist. Click the
-            &ldquo;Digitized&rdquo; column to upload the actual file(s) for a document &mdash; it's checked
-            once at least one file is on hand.
+            Every project's transition documents, in one list &mdash; each belongs to exactly one
+            project (see the Project column). Click the &ldquo;Digitized&rdquo; column to upload the
+            actual file(s) for a document &mdash; it's checked once at least one file is on hand.
         </p>
     {% endif %}
     <p style="color:var(--muted);max-width:760px;">{{ collected_count }} of {{ documents|length }} collected so far.</p>
@@ -45,7 +45,7 @@
                     <td><a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a></td>
                     <td>{{ doc.purpose }}</td>
                     <td>{{ doc.owner|default:"—" }}</td>
-                    <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Shared</span>{% endif %}</td>
+                    <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Unassigned</span>{% endif %}</td>
                     {% for system in systems %}
                         <td>{% if system in doc.systems.all %}Y{% endif %}</td>
                     {% endfor %}

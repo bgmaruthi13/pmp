@@ -431,13 +431,17 @@ class Command(BaseCommand):
             ("Risk", "Project Management Tool Adoption", "Status of adopting the standard project management tool.", "Transition Manager", [], False),
             ("Risk", "Outdated Technology List", "List of any outdated technologies still in use.", "Transition Manager", [], False),
         ]
-        for order, (category, document, purpose, owner, sys_names, available) in enumerate(transition_data):
-            doc, _ = TransitionDocument.objects.get_or_create(
-                document=document,
-                defaults={"category": category, "purpose": purpose, "owner": owner, "order": order, "available": available},
-            )
-            if sys_names:
-                doc.systems.set([systems[n] for n in sys_names])
+        # Each project gets its own independent copy of the checklist — a transition
+        # plan is per application, not a single list shared across every project.
+        for project in projects.values():
+            for order, (category, document, purpose, owner, sys_names, available) in enumerate(transition_data):
+                doc, _ = TransitionDocument.objects.get_or_create(
+                    document=document,
+                    project=project,
+                    defaults={"category": category, "purpose": purpose, "owner": owner, "order": order, "available": available},
+                )
+                if sys_names:
+                    doc.systems.set([systems[n] for n in sys_names])
 
         # -- Sample work item history (for the Team page's Analysis view) --
         work_item_types = ["User Story", "Bug", "Task"]

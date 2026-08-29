@@ -194,13 +194,13 @@ class TransitionDocument(models.Model):
         null=True,
         blank=True,
         related_name="transition_documents",
-        help_text="Optional: scope this checklist item to one project. Left blank, it's a shared/generic item shown for every project.",
+        help_text="The project (application) this transition checklist item belongs to. Each project has its own independent checklist — nothing here is shared across projects.",
     )
 
     versions = GenericRelation("DocumentVersion")
 
     class Meta:
-        ordering = ["order", "id"]
+        ordering = ["project__name", "order", "id"]
 
     def __str__(self):
         return self.document
