@@ -188,6 +188,14 @@ class TransitionDocument(models.Model):
         default=False,
         help_text="Whether this document has actually been gathered and uploaded yet.",
     )
+    project = models.ForeignKey(
+        "Project",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transition_documents",
+        help_text="Optional: scope this checklist item to one project. Left blank, it's a shared/generic item shown for every project.",
+    )
 
     versions = GenericRelation("DocumentVersion")
 

@@ -7,12 +7,21 @@
         <a href="{% url 'ticket-tracker' %}">Tickets</a>
         <a href="{% url 'transition-list' %}" class="active">Transition Plan</a>
     </div>
-    <h1>Project Transition List</h1>
-    <p style="color:var(--muted);max-width:760px;">
-        Every document this transition plan calls for, in one checklist. Click the
-        &ldquo;Digitized&rdquo; column to upload the actual file(s) for a document &mdash; it's checked
-        once at least one file is on hand. {{ collected_count }} of {{ documents|length }} collected so far.
-    </p>
+    {% if selected_project %}
+        <h1>Transition Plan &middot; {{ selected_project.name }}</h1>
+        <p style="color:var(--muted);max-width:760px;">
+            Documents scoped to this project, plus every shared/generic checklist item.
+            <a href="{% url 'transition-list' %}">View the full unfiltered checklist &rarr;</a>
+        </p>
+    {% else %}
+        <h1>Project Transition List</h1>
+        <p style="color:var(--muted);max-width:760px;">
+            Every document this transition plan calls for, in one checklist. Click the
+            &ldquo;Digitized&rdquo; column to upload the actual file(s) for a document &mdash; it's checked
+            once at least one file is on hand.
+        </p>
+    {% endif %}
+    <p style="color:var(--muted);max-width:760px;">{{ collected_count }} of {{ documents|length }} collected so far.</p>
     <div class="table-wrap">
     <table>
         <thead>
@@ -22,6 +31,7 @@
                 <th>Document</th>
                 <th>Purpose</th>
                 <th>Owner</th>
+                <th>Project</th>
                 {% for system in systems %}<th>{{ system.name }}</th>{% endfor %}
                 <th>Comments</th>
                 <th style="text-align:center;">Digitized</th>
@@ -35,6 +45,7 @@
                     <td><a href="{{ doc.get_absolute_url }}">{{ doc.document }}</a></td>
                     <td>{{ doc.purpose }}</td>
                     <td>{{ doc.owner|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{% if doc.project %}<a href="{% url 'transition-list' %}?project={{ doc.project.pk }}">{{ doc.project.name }}</a>{% else %}<span style="color:var(--muted);">Shared</span>{% endif %}</td>
                     {% for system in systems %}
                         <td>{% if system in doc.systems.all %}Y{% endif %}</td>
                     {% endfor %}
@@ -52,7 +63,7 @@
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="{{ systems|length|add:7 }}">No transition documents yet.</td></tr>
+                <tr><td colspan="{{ systems|length|add:8 }}">No transition documents yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

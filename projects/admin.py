@@ -44,8 +44,8 @@ class TransitionSystemAdmin(admin.ModelAdmin):
 
 @admin.register(TransitionDocument)
 class TransitionDocumentAdmin(admin.ModelAdmin):
-    list_display = ("document", "category", "owner", "available", "order")
-    list_filter = ("category", "available")
+    list_display = ("document", "category", "project", "owner", "available", "order")
+    list_filter = ("category", "available", "project")
     filter_horizontal = ("systems",)
 
 

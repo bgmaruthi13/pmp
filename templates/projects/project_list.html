@@ -30,7 +30,14 @@
             {% for project in projects %}
                 <tr>
                     <td><a href="{{ project.get_absolute_url }}">{{ project.name }}</a></td>
-                    <td>{% if project.application %}<a href="{{ project.application.get_absolute_url }}">{{ project.application.name }}</a>{% else %}—{% endif %}</td>
+                    <td style="white-space:nowrap;">
+                        {% if project.application %}
+                            <a href="{% url 'transition-list' %}?project={{ project.pk }}">{{ project.application.name }}</a>
+                            <div><small><a href="{{ project.application.get_absolute_url }}">Details</a></small></div>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                     <td>{{ project.description|default:"—" }}</td>
                     <td>{% if project.lead %}<a href="{{ project.lead.get_absolute_url }}">{{ project.lead.name }}</a>{% else %}—{% endif %}</td>
                     <td>{{ project.created_at|date:"d M Y" }}</td>

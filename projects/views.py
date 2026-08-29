@@ -87,7 +87,7 @@ def ticket_detail(request, pk):
 
 
 def application_list(request):
-    applications = Application.objects.all()
+    applications = Application.objects.prefetch_related("projects")
     return render(request, "projects/application_list.html", {"applications": applications})
 
 
@@ -99,7 +99,12 @@ def application_detail(request, pk):
 
 
 def transition_list(request):
-    documents = TransitionDocument.objects.prefetch_related("systems", "versions")
+    documents = TransitionDocument.objects.select_related("project").prefetch_related("systems", "versions")
+    selected_project = None
+    project_id = request.GET.get("project")
+    if project_id:
+        selected_project = get_object_or_404(Project, pk=project_id)
+        documents = documents.filter(Q(project=selected_project) | Q(project__isnull=True))
     systems = TransitionSystem.objects.all()
     return render(
         request,
@@ -108,6 +113,7 @@ def transition_list(request):
             "documents": documents,
             "systems": systems,
             "collected_count": sum(1 for d in documents if d.available),
+            "selected_project": selected_project,
         },
     )
 

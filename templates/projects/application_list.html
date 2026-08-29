@@ -45,7 +45,16 @@
             {% for app in applications %}
                 <tr>
                     <td><small>{{ app.global_id }}</small></td>
-                    <td><a href="{{ app.get_absolute_url }}">{{ app.name }}</a></td>
+                    <td style="white-space:nowrap;">
+                        {% with proj=app.projects.all|first %}
+                            {% if proj %}
+                                <a href="{% url 'transition-list' %}?project={{ proj.pk }}">{{ app.name }}</a>
+                            {% else %}
+                                <a href="{% url 'transition-list' %}">{{ app.name }}</a>
+                            {% endif %}
+                        {% endwith %}
+                        <div><small><a href="{{ app.get_absolute_url }}">Details</a></small></div>
+                    </td>
                     <td>{{ app.domain|default:"—" }}</td>
                     <td><span class="pill {{ app.sensitivity|sensitivity_pill }}">{{ app.get_sensitivity_display }}</span></td>
                     <td>{{ app.architecture_container }}</td>
