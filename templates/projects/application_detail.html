@@ -22,6 +22,19 @@
                 <th>Procurement Type</th>
                 <th>Application Officer</th>
                 <th>Country</th>
+                <th>P Level</th>
+                <th>GlobalGov lvl.1</th>
+                <th>GlobalGov lvl.2</th>
+                <th>Backup Status</th>
+                <th>Backup Solution</th>
+                <th>Backup Coverage Level</th>
+                <th>Confidence to Rebuild</th>
+                <th>Date of Last Backup</th>
+                <th>Date of Last Restore</th>
+                <th>Last Rebuilt Using Backup</th>
+                <th>Known Limitations / Risks</th>
+                <th>Description</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
@@ -39,32 +52,6 @@
                 <td>{{ application.get_procurement_type_display }}</td>
                 <td>{{ application.officer|default:"—" }}</td>
                 <td>{{ application.country|default:"—" }}</td>
-            </tr>
-        </tbody>
-    </table>
-    </div>
-
-    <h2 style="margin-top:2rem;">Backup &amp; Disaster Recovery</h2>
-    <div class="table-wrap">
-    <table>
-        <thead>
-            <tr>
-                <th>P Level</th>
-                <th>GlobalGov lvl.1</th>
-                <th>GlobalGov lvl.2</th>
-                <th>Backup Status</th>
-                <th>Backup Solution</th>
-                <th>Backup Coverage Level</th>
-                <th>Confidence to Rebuild</th>
-                <th>Date of Last Backup</th>
-                <th>Date of Last Restore</th>
-                <th>Last Rebuilt Using Backup</th>
-                <th>Known Limitations / Risks</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
                 <td>{{ application.p_level|default:"—" }}</td>
                 <td>{{ application.globalgov_lvl1|default:"—" }}</td>
                 <td>{{ application.globalgov_lvl2|default:"—" }}</td>
@@ -82,16 +69,12 @@
                 <td>{{ application.last_restore_date|default:"—" }}</td>
                 <td>{{ application.last_rebuild_date|default:"—" }}</td>
                 <td>{{ application.backup_limitations|default:"—" }}</td>
+                <td>{{ application.description|default:"—" }}</td>
                 <td>{{ application.status|default:"—" }}</td>
             </tr>
         </tbody>
     </table>
     </div>
-
-    {% if application.description %}
-        <h2 style="margin-top:2rem;">Description</h2>
-        <p style="max-width:700px;color:var(--muted);">{{ application.description }}</p>
-    {% endif %}
 
     {% if application.projects.all %}
         <h2 style="margin-top:2rem;">Linked Projects</h2>

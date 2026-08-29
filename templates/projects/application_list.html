@@ -26,6 +26,19 @@
                 <th>Procurement Type</th>
                 <th>Application Officer</th>
                 <th>Country</th>
+                <th>P Level</th>
+                <th>GlobalGov lvl.1</th>
+                <th>GlobalGov lvl.2</th>
+                <th>Backup Status</th>
+                <th>Backup Solution</th>
+                <th>Backup Coverage Level</th>
+                <th>Confidence to Rebuild</th>
+                <th>Date of Last Backup</th>
+                <th>Date of Last Restore</th>
+                <th>Last Rebuilt Using Backup</th>
+                <th>Known Limitations / Risks</th>
+                <th>Description</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
@@ -44,9 +57,28 @@
                     <td>{{ app.get_procurement_type_display }}</td>
                     <td>{{ app.officer|default:"—" }}</td>
                     <td>{{ app.country|default:"—" }}</td>
+                    <td>{{ app.p_level|default:"—" }}</td>
+                    <td>{{ app.globalgov_lvl1|default:"—" }}</td>
+                    <td>{{ app.globalgov_lvl2|default:"—" }}</td>
+                    <td>{{ app.backup_status|default:"—" }}</td>
+                    <td>{{ app.backup_solution|default:"—" }}</td>
+                    <td>{{ app.backup_coverage_level|default:"—" }}</td>
+                    <td>
+                        {% if app.rebuild_confidence %}
+                            <span class="pill {{ app.rebuild_confidence|confidence_pill }}">{{ app.get_rebuild_confidence_display }}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ app.last_backup_date|default:"—" }}</td>
+                    <td>{{ app.last_restore_date|default:"—" }}</td>
+                    <td>{{ app.last_rebuild_date|default:"—" }}</td>
+                    <td>{{ app.backup_limitations|default:"—" }}</td>
+                    <td>{{ app.description|default:"—" }}</td>
+                    <td>{{ app.status|default:"—" }}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="13">No applications yet.</td></tr>
+                <tr><td colspan="25">No applications yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
