@@ -448,6 +448,7 @@ class Command(BaseCommand):
             ("Risk", "Ticketing Tool Adoption", "Status of adopting the standard ticketing solution.", "Transition Manager", [], False),
             ("Risk", "Project Management Tool Adoption", "Status of adopting the standard project management tool.", "Transition Manager", [], False),
             ("Risk", "Outdated Technology List", "List of any outdated technologies still in use.", "Transition Manager", [], False),
+            ("Roadmap", "Roadmap 2026", "Forward-looking plan of major initiatives and milestones planned for 2026.", "Project Lead", [], False),
         ]
         # Each checklist item is defined once as a shared template; every project
         # gets its own TransitionDocument instance of that template, so the
