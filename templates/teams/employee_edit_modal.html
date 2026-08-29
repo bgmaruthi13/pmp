@@ -1,15 +1,21 @@
 <h2 style="margin:0 0 1rem;color:var(--navy-dark);">Edit {{ employee.name }}</h2>
-<form method="post" action="{% url 'employee-edit' employee.pk %}">
+<form method="post" action="{% url 'employee-edit' employee.pk %}" enctype="multipart/form-data">
     {% csrf_token %}
+    <p>
+        {% if employee.photo %}<span class="avatar" style="width:44px;height:44px;"><img src="{{ employee.photo.url }}" alt=""></span>{% endif %}
+        {{ form.photo.label_tag }}{{ form.photo }}
+    </p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 1.25rem;">
         <p>{{ form.name.label_tag }}{{ form.name }}</p>
         <p>{{ form.emp_id.label_tag }}{{ form.emp_id }}</p>
         <p>{{ form.email.label_tag }}{{ form.email }}</p>
         <p>{{ form.designation.label_tag }}{{ form.designation }}</p>
+        <p>{{ form.employment_type.label_tag }}{{ form.employment_type }}</p>
         <p>{{ form.country.label_tag }}{{ form.country }}</p>
         <p>{{ form.manager.label_tag }}{{ form.manager }}</p>
         <p>{{ form.line_manager.label_tag }}{{ form.line_manager }}</p>
         <p>{{ form.doj.label_tag }}{{ form.doj }}</p>
+        <p>{{ form.career_start_date.label_tag }}{{ form.career_start_date }}</p>
         <p>{{ form.rtb_efficiency.label_tag }}{{ form.rtb_efficiency }}</p>
         <p>{{ form.gsc_efficiency.label_tag }}{{ form.gsc_efficiency }}</p>
         <p>{{ form.ai_efficiency.label_tag }}{{ form.ai_efficiency }}</p>

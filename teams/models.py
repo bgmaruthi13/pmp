@@ -1,5 +1,25 @@
+from datetime import date
+
 from django.db import models
 from django.urls import reverse
+
+
+def _duration_display(start_date):
+    """Years/months between start_date and today, formatted as e.g. "3 yrs 2 mo" —
+    computed on the fly so it never needs to be manually kept up to date."""
+    if not start_date:
+        return None
+    today = date.today()
+    months = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+    if today.day < start_date.day:
+        months -= 1
+    months = max(months, 0)
+    years, months = divmod(months, 12)
+    if years and months:
+        return f"{years} yr{'s' if years != 1 else ''} {months} mo"
+    if years:
+        return f"{years} yr{'s' if years != 1 else ''}"
+    return f"{months} mo"
 
 DEFAULT_ROLES = [
     "Project Lead",
@@ -24,9 +44,24 @@ class Role(models.Model):
 
 
 class Employee(models.Model):
+    class EmploymentType(models.TextChoices):
+        PERMANENT = "permanent", "Permanent"
+        CONTRACT = "contract", "Contract"
+
     name = models.CharField(max_length=150)
     emp_id = models.CharField("EMP ID", max_length=20, blank=True)
     email = models.EmailField(blank=True)
+    photo = models.ImageField(upload_to="employee_photos/", blank=True, null=True)
+    employment_type = models.CharField(
+        max_length=20, choices=EmploymentType.choices, blank=True,
+        help_text="Whether this person is a permanent employee or on contract.",
+    )
+    career_start_date = models.DateField(
+        "Career start date",
+        null=True,
+        blank=True,
+        help_text="When this person's professional career began — used to compute total years of experience.",
+    )
     designation = models.CharField(
         max_length=150, blank=True, help_text="Job title / grade, e.g. Lead Software Engineer."
     )
@@ -94,6 +129,12 @@ class Employee(models.Model):
 
     def roles_display(self):
         return ", ".join(r.name for r in self.roles.all())
+
+    def org_experience_display(self):
+        return _duration_display(self.doj)
+
+    def total_experience_display(self):
+        return _duration_display(self.career_start_date)
 
 
 class EmployeeNote(models.Model):

@@ -38,6 +38,8 @@ class Command(BaseCommand):
                 "designation": "Engineering Manager",
                 "country": "India",
                 "doj": date(2022, 1, 10),
+                "career_start_date": date(2011, 7, 1),
+                "employment_type": Employee.EmploymentType.PERMANENT,
                 "rtb_efficiency": 12.5,
                 "gsc_efficiency": 8.0,
                 "ai_efficiency": 15.0,
@@ -52,6 +54,8 @@ class Command(BaseCommand):
                 "designation": "Service Delivery Manager",
                 "country": "India",
                 "doj": date(2021, 6, 1),
+                "career_start_date": date(2009, 4, 1),
+                "employment_type": Employee.EmploymentType.PERMANENT,
             },
         )
         sdm.roles.set([roles["Service Delivery Manager"]])
@@ -64,6 +68,8 @@ class Command(BaseCommand):
                 "designation": "Lead Software Engineer",
                 "country": "India",
                 "doj": date(2022, 3, 15),
+                "career_start_date": date(2014, 6, 1),
+                "employment_type": Employee.EmploymentType.CONTRACT,
             },
         )
         platform_lead.roles.set([roles["Platform Engineer Lead"]])
@@ -81,6 +87,8 @@ class Command(BaseCommand):
                     "designation": "Specialist Software Engineer",
                     "country": "India",
                     "doj": date(2022, 7, 1),
+                    "career_start_date": date(2017, 8, 1),
+                    "employment_type": Employee.EmploymentType.PERMANENT,
                     "line_manager": lead,
                     "rtb_efficiency": 10,
                     "gsc_efficiency": 5,
@@ -96,6 +104,8 @@ class Command(BaseCommand):
                     "designation": "Software Engineer",
                     "country": "Poland",
                     "doj": date(2023, 1, 16),
+                    "career_start_date": date(2020, 2, 1),
+                    "employment_type": Employee.EmploymentType.CONTRACT,
                     "line_manager": lead,
                 },
             ),

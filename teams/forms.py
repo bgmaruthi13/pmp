@@ -10,11 +10,14 @@ class EmployeeForm(forms.ModelForm):
             "name",
             "emp_id",
             "email",
+            "photo",
             "designation",
+            "employment_type",
             "country",
             "manager",
             "line_manager",
             "doj",
+            "career_start_date",
             "awards",
             "rtb_efficiency",
             "gsc_efficiency",
@@ -22,6 +25,7 @@ class EmployeeForm(forms.ModelForm):
         ]
         widgets = {
             "doj": forms.DateInput(attrs={"type": "date"}),
+            "career_start_date": forms.DateInput(attrs={"type": "date"}),
             "awards": forms.Textarea(attrs={"rows": 2}),
         }
 

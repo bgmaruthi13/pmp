@@ -168,7 +168,7 @@ def team_efficiency(request):
 def employee_edit(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
     if request.method == "POST":
-        form = EmployeeForm(request.POST, instance=employee, employee=employee)
+        form = EmployeeForm(request.POST, request.FILES, instance=employee, employee=employee)
         if form.is_valid():
             form.save()
             messages.success(request, f"Updated {employee.name}.")

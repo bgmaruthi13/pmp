@@ -19,10 +19,13 @@
                 <th>Name</th>
                 <th>EMP ID</th>
                 <th>Designation</th>
+                <th>Type</th>
                 <th>Project Role</th>
                 <th>Manager</th>
                 <th>Line Manager</th>
                 <th>DOJ</th>
+                <th>Experience (Org)</th>
+                <th>Experience (Total)</th>
                 <th>Email</th>
                 <th>Project(s)</th>
                 <th>WFH Exceptions</th>
@@ -36,13 +39,16 @@
             {% for row in rows %}
                 <tr>
                     <td>
-                        <span class="avatar">{{ row.employee.name|initials }}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a>
+                        <span class="avatar">{% if row.employee.photo %}<img src="{{ row.employee.photo.url }}" alt="">{% else %}{{ row.employee.name|initials }}{% endif %}</span><a href="{{ row.employee.get_absolute_url }}">{{ row.employee.name }}</a>
                         {% if user.is_authenticated %}
                             <div><small><a href="#" onclick="openEditEmployee({{ row.employee.pk }}); return false;">Edit</a></small></div>
                         {% endif %}
                     </td>
                     <td style="white-space:nowrap;">{{ row.employee.emp_id|default:"—" }}</td>
                     <td style="white-space:nowrap;">{{ row.employee.designation|default:"—" }}</td>
+                    <td style="white-space:nowrap;">
+                        {% if row.employee.employment_type %}<span class="pill {% if row.employee.employment_type == 'contract' %}warning{% else %}info{% endif %}">{{ row.employee.get_employment_type_display }}</span>{% else %}—{% endif %}
+                    </td>
                     <td>
                         {% for role in row.employee.roles.all %}
                             <span class="pill info">{{ role.name }}</span>
@@ -53,6 +59,8 @@
                     <td style="white-space:nowrap;">{{ row.employee.manager.name|default:"—" }}</td>
                     <td style="white-space:nowrap;">{{ row.employee.line_manager.name|default:"—" }}</td>
                     <td style="white-space:nowrap;">{{ row.employee.doj|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.org_experience_display|default:"—" }}</td>
+                    <td style="white-space:nowrap;">{{ row.employee.total_experience_display|default:"—" }}</td>
                     <td style="white-space:nowrap;">{{ row.employee.email|default:"—" }}</td>
                     <td>
                         {% for project in row.projects %}
@@ -69,7 +77,7 @@
                     <td style="white-space:nowrap;"><a href="{% url 'employee-work' row.employee.pk %}">{{ row.ticket_count }}</a></td>
                 </tr>
             {% empty %}
-                <tr><td colspan="14">No team members yet.</td></tr>
+                <tr><td colspan="17">No team members yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

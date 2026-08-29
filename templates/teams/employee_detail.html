@@ -3,7 +3,10 @@
 {% block title %}{{ employee.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
     <p><a href="{% url 'team-org' %}">&larr; Back to Team</a></p>
-    <h1><span class="avatar" style="width:38px;height:38px;font-size:0.85rem;">{{ employee.name|initials }}</span>{{ employee.name }}</h1>
+    <h1>
+        <span class="avatar" style="width:38px;height:38px;font-size:0.85rem;">{% if employee.photo %}<img src="{{ employee.photo.url }}" alt="">{% else %}{{ employee.name|initials }}{% endif %}</span>{{ employee.name }}
+        {% if employee.employment_type %}<span class="pill {% if employee.employment_type == 'contract' %}warning{% else %}info{% endif %}" style="vertical-align:middle;">{{ employee.get_employment_type_display }}</span>{% endif %}
+    </h1>
 
     <div class="table-wrap" style="max-width: 500px;">
     <table>
@@ -21,6 +24,8 @@
                 <td>{% if employee.manager %}<a href="{{ employee.manager.get_absolute_url }}">{{ employee.manager.name }}</a>{% else %}—{% endif %}</td>
             </tr>
             <tr><th>Email</th><td>{{ employee.email|default:"—" }}</td></tr>
+            <tr><th>Experience at this org</th><td>{{ employee.org_experience_display|default:"—" }}</td></tr>
+            <tr><th>Total experience</th><td>{{ employee.total_experience_display|default:"—" }}</td></tr>
             <tr>
                 <th>Direct Reports</th>
                 <td>
