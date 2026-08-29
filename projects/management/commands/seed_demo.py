@@ -240,7 +240,7 @@ class Command(BaseCommand):
         # -- Applications ------------------------------------------------
         applications_data = [
             {
-                "name": "e-Filing Core Engine 4.0", "sensitivity": "3-high", "container": "eSuvidha-Digital",
+                "name": "e-Filing Core Engine 4.0", "domain": "Tax Filing", "sensitivity": "3-high", "container": "eSuvidha-Digital",
                 "procurement": "in_house", "apptype": "business_capabilities", "officer": "Priya Raghavan",
                 "p_level": "P1", "backup_status": "Configured", "backup_solution": "Veeam",
                 "backup_coverage_level": "Total", "rebuild_confidence": "high",
@@ -250,7 +250,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "TDS-CPC Integration Gateway", "sensitivity": "3-high", "container": "eSuvidha-Digital",
+                "name": "TDS-CPC Integration Gateway", "domain": "Tax Filing", "sensitivity": "3-high", "container": "eSuvidha-Digital",
                 "procurement": "in_house", "apptype": "it_capabilities", "officer": "Karthik Subramaniam",
                 "p_level": "P1", "backup_status": "Configured", "backup_solution": "TSM",
                 "backup_coverage_level": "Partial", "rebuild_confidence": "medium",
@@ -260,7 +260,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "PAN Validation Service", "sensitivity": "3-high", "container": "eSuvidha-Digital",
+                "name": "PAN Validation Service", "domain": "Identity & KYC", "sensitivity": "3-high", "container": "eSuvidha-Digital",
                 "procurement": "software_package", "apptype": "business_capabilities", "officer": "Divya Menon",
                 "p_level": "P2", "backup_status": "Configured", "backup_solution": "Commvault",
                 "backup_coverage_level": "Total", "rebuild_confidence": "high",
@@ -270,7 +270,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "Aadhaar e-KYC Connector", "sensitivity": "2-critical", "container": "eSuvidha-Digital",
+                "name": "Aadhaar e-KYC Connector", "domain": "Identity & KYC", "sensitivity": "2-critical", "container": "eSuvidha-Digital",
                 "procurement": "software_package", "apptype": "it_capabilities", "officer": "Sanjay Iyer",
                 "p_level": "P0", "backup_status": "Configured", "backup_solution": "Veeam + offsite replica",
                 "backup_coverage_level": "Total", "rebuild_confidence": "high",
@@ -280,7 +280,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "Refund Banking Interface", "sensitivity": "2-critical", "container": "eSuvidha-Digital",
+                "name": "Refund Banking Interface", "domain": "Payments", "sensitivity": "2-critical", "container": "eSuvidha-Digital",
                 "procurement": "in_house", "apptype": "business_capabilities", "officer": "Rohit Deshmukh",
                 "p_level": "P0", "backup_status": "Configured", "backup_solution": "Veeam",
                 "backup_coverage_level": "Total / Full backup + transaction log", "rebuild_confidence": "high",
@@ -291,7 +291,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "Taxpayer Grievance CRM", "sensitivity": "4-medium", "container": "eSuvidha-Digital",
+                "name": "Taxpayer Grievance CRM", "domain": "Grievance Management", "sensitivity": "4-medium", "container": "eSuvidha-Digital",
                 "procurement": "software_package", "apptype": "business_capabilities", "officer": "Neha Kulkarni",
                 "p_level": "P2", "backup_status": "Pending vendor confirmation", "backup_solution": "Still pending vendor feedback",
                 "backup_coverage_level": "Still pending vendor feedback", "rebuild_confidence": "",
@@ -302,7 +302,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "Form 26AS Sync Service", "sensitivity": "3-high", "container": "eSuvidha-Digital",
+                "name": "Form 26AS Sync Service", "domain": "Reporting & Compliance", "sensitivity": "3-high", "container": "eSuvidha-Digital",
                 "procurement": "in_house", "apptype": "it_capabilities", "officer": "Priya Raghavan",
                 "p_level": "P1", "backup_status": "Configured", "backup_solution": "TSM",
                 "backup_coverage_level": "Total", "rebuild_confidence": "medium",
@@ -313,7 +313,7 @@ class Command(BaseCommand):
                 "status": "Active",
             },
             {
-                "name": "OTP & Notification Gateway", "sensitivity": "3-high", "container": "eSuvidha-Digital",
+                "name": "OTP & Notification Gateway", "domain": "Notifications", "sensitivity": "3-high", "container": "eSuvidha-Digital",
                 "procurement": "software_package", "apptype": "it_capabilities", "officer": "Karthik Subramaniam",
                 "p_level": "P1", "backup_status": "Not applicable", "backup_solution": "Not applicable",
                 "backup_coverage_level": "Not applicable", "rebuild_confidence": "medium",
@@ -328,6 +328,7 @@ class Command(BaseCommand):
             Application.objects.get_or_create(
                 name=app_data["name"],
                 defaults={
+                    "domain": app_data["domain"],
                     "sensitivity": app_data["sensitivity"],
                     "architecture_container": app_data["container"],
                     "gsc_owner": "Vikram Nair",

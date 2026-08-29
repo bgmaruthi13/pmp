@@ -104,6 +104,10 @@ class Application(models.Model):
 
     global_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=200)
+    domain = models.CharField(
+        max_length=150, blank=True,
+        help_text="Business/functional domain, e.g. Tax Filing, Payments, Identity & KYC.",
+    )
     sensitivity = models.CharField(max_length=20, choices=Sensitivity.choices, default=Sensitivity.HIGH)
     architecture_container = models.CharField(max_length=150, blank=True)
     gsc_owner = models.CharField(max_length=150, blank=True)

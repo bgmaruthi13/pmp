@@ -15,6 +15,7 @@
             <tr>
                 <th>Global ID</th>
                 <th>Application</th>
+                <th>Domain</th>
                 <th>Sensitivity</th>
                 <th>Architecture Container</th>
                 <th>GSC Owner</th>
@@ -32,6 +33,7 @@
                 <tr>
                     <td><small>{{ app.global_id }}</small></td>
                     <td><a href="{{ app.get_absolute_url }}">{{ app.name }}</a></td>
+                    <td>{{ app.domain|default:"—" }}</td>
                     <td><span class="pill {{ app.sensitivity|sensitivity_pill }}">{{ app.get_sensitivity_display }}</span></td>
                     <td>{{ app.architecture_container }}</td>
                     <td>{{ app.gsc_owner|default:"—" }}</td>
@@ -44,7 +46,7 @@
                     <td>{{ app.country|default:"—" }}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="12">No applications yet.</td></tr>
+                <tr><td colspan="13">No applications yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
