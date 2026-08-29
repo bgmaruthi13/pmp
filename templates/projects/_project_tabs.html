@@ -1,0 +1,12 @@
+<p style="margin-bottom:0.5rem;"><a href="{% url 'project-list' %}">&larr; All Projects</a></p>
+<h1 style="margin-bottom:0.15rem;">{{ scoped_project.name }}</h1>
+{% if scoped_project.application %}
+    <p style="color:var(--muted);margin-top:0;">
+        Application: <a href="{{ scoped_project.application.get_absolute_url }}">{{ scoped_project.application.name }}</a>
+    </p>
+{% endif %}
+<div class="tabs" style="margin-bottom:1.25rem;">
+    <a href="{% url 'project-detail' scoped_project.pk %}" class="{% if active_project_tab == 'overview' %}active{% endif %}">Overview</a>
+    <a href="{% url 'ticket-tracker' %}?project={{ scoped_project.pk }}" class="{% if active_project_tab == 'tickets' %}active{% endif %}">Tickets</a>
+    <a href="{% url 'transition-list' %}?project={{ scoped_project.pk }}" class="{% if active_project_tab == 'transition' %}active{% endif %}">Transition Plan</a>
+</div>

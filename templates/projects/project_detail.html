@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} · eSuvidha Ops Portal{% endblock %}
 {% block content %}
-    <h1>{{ project.name }}</h1>
+    {% include "projects/_project_tabs.html" %}
     <p>
         {{ project.description }}
         {% if project.lead %} · <small>Lead: {{ project.lead.name }}</small>{% endif %}
-        {% if project.application %} · <small>Application: <a href="{% url 'transition-list' %}?project={{ project.pk }}">{{ project.application.name }}</a> (<a href="{{ project.application.get_absolute_url }}">details</a>)</small>{% endif %}
     </p>
     {% if user.is_authenticated %}
         <p><a class="btn" href="{% url 'task-create' project.pk %}">+ New ticket</a></p>
