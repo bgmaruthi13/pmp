@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from .models import Application, Area, DocumentVersion, Project, Task, TransitionDocument, TransitionSystem
+from .models import (
+    Application,
+    Area,
+    DocumentVersion,
+    Project,
+    Task,
+    TransitionDocument,
+    TransitionDocumentTemplate,
+    TransitionSystem,
+)
 
 
 class TaskInline(admin.TabularInline):
@@ -42,11 +51,19 @@ class TransitionSystemAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
+@admin.register(TransitionDocumentTemplate)
+class TransitionDocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ("document", "category", "owner", "order", "archived")
+    list_filter = ("category", "archived")
+    filter_horizontal = ("systems",)
+    search_fields = ("document", "category")
+
+
 @admin.register(TransitionDocument)
 class TransitionDocumentAdmin(admin.ModelAdmin):
-    list_display = ("document", "category", "project", "owner", "available", "order")
-    list_filter = ("category", "available", "project")
-    filter_horizontal = ("systems",)
+    list_display = ("template", "project", "available")
+    list_filter = ("available", "project", "template__category")
+    search_fields = ("template__document",)
 
 
 @admin.register(DocumentVersion)

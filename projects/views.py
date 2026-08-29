@@ -99,7 +99,9 @@ def application_detail(request, pk):
 
 
 def transition_list(request):
-    documents = TransitionDocument.objects.select_related("project").prefetch_related("systems", "versions")
+    documents = TransitionDocument.objects.select_related("project", "template").prefetch_related(
+        "template__systems", "versions"
+    )
     selected_project = None
     project_id = request.GET.get("project")
     if project_id:
@@ -119,7 +121,9 @@ def transition_list(request):
 
 
 def transition_detail(request, pk):
-    document = get_object_or_404(TransitionDocument.objects.prefetch_related("systems"), pk=pk)
+    document = get_object_or_404(
+        TransitionDocument.objects.select_related("template").prefetch_related("template__systems"), pk=pk
+    )
     context = {"document": document}
     context.update(_document_versions_context(document))
     return render(request, "projects/transition_detail.html", context)

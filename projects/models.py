@@ -177,14 +177,43 @@ class TransitionSystem(models.Model):
         return self.name
 
 
-class TransitionDocument(models.Model):
+class TransitionDocumentTemplate(models.Model):
+    """The shared definition of one checklist item — its name, category, purpose,
+    owner, and relevant systems. Every project's checklist row (TransitionDocument)
+    points at one of these instead of keeping its own copy, so editing or archiving
+    a template here is what makes an add/edit/delete apply across every project at
+    once, instead of needing to be repeated per project."""
+
     category = models.CharField(max_length=150)
     document = models.CharField(max_length=200)
     purpose = models.TextField(blank=True)
     owner = models.CharField(max_length=150, blank=True)
-    systems = models.ManyToManyField(TransitionSystem, blank=True, related_name="documents")
-    comments = models.CharField(max_length=200, blank=True)
+    systems = models.ManyToManyField(TransitionSystem, blank=True, related_name="template_documents")
     order = models.PositiveIntegerField(default=0)
+    archived = models.BooleanField(
+        default=False,
+        help_text=(
+            "Archived templates no longer appear on any project's active checklist, but any files "
+            "already uploaded against them are kept rather than deleted."
+        ),
+    )
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.document
+
+
+class TransitionDocument(models.Model):
+    template = models.ForeignKey(
+        TransitionDocumentTemplate,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="documents",
+        help_text="The shared checklist-item definition this row is a per-project instance of.",
+    )
+    comments = models.CharField(max_length=200, blank=True)
     available = models.BooleanField(
         "Document collected / digitized",
         default=False,
@@ -202,13 +231,33 @@ class TransitionDocument(models.Model):
     versions = GenericRelation("DocumentVersion")
 
     class Meta:
-        ordering = ["project__name", "order", "id"]
+        ordering = ["project__name", "template__order", "id"]
 
     def __str__(self):
         return self.document
 
     def get_absolute_url(self):
         return reverse("transition-detail", args=[self.pk])
+
+    @property
+    def category(self):
+        return self.template.category if self.template_id else ""
+
+    @property
+    def document(self):
+        return self.template.document if self.template_id else ""
+
+    @property
+    def purpose(self):
+        return self.template.purpose if self.template_id else ""
+
+    @property
+    def owner(self):
+        return self.template.owner if self.template_id else ""
+
+    @property
+    def systems(self):
+        return self.template.systems if self.template_id else TransitionSystem.objects.none()
 
 
 class DocumentActivity(models.TextChoices):

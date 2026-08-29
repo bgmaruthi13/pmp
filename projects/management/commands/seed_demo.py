@@ -4,7 +4,15 @@ from datetime import date, timedelta
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
-from projects.models import Application, Area, Project, Task, TransitionDocument, TransitionSystem
+from projects.models import (
+    Application,
+    Area,
+    Project,
+    Task,
+    TransitionDocument,
+    TransitionDocumentTemplate,
+    TransitionSystem,
+)
 from teams.models import DEFAULT_ROLES, Employee, EmployeeNote, Role, SupportTicket, WorkItem
 
 
@@ -441,17 +449,28 @@ class Command(BaseCommand):
             ("Risk", "Project Management Tool Adoption", "Status of adopting the standard project management tool.", "Transition Manager", [], False),
             ("Risk", "Outdated Technology List", "List of any outdated technologies still in use.", "Transition Manager", [], False),
         ]
-        # Each project gets its own independent copy of the checklist — a transition
-        # plan is per application, not a single list shared across every project.
+        # Each checklist item is defined once as a shared template; every project
+        # gets its own TransitionDocument instance of that template, so the
+        # template is the single place an add/edit/archive needs to happen for it
+        # to apply everywhere, while each project keeps its own collected-status
+        # and uploaded files.
+        templates = []
+        for order, (category, document, purpose, owner, sys_names, available) in enumerate(transition_data):
+            template, _ = TransitionDocumentTemplate.objects.get_or_create(
+                document=document,
+                defaults={"category": category, "purpose": purpose, "owner": owner, "order": order},
+            )
+            if sys_names:
+                template.systems.set([systems[n] for n in sys_names])
+            templates.append((template, available))
+
         for project in projects.values():
-            for order, (category, document, purpose, owner, sys_names, available) in enumerate(transition_data):
-                doc, _ = TransitionDocument.objects.get_or_create(
-                    document=document,
+            for template, available in templates:
+                TransitionDocument.objects.get_or_create(
+                    template=template,
                     project=project,
-                    defaults={"category": category, "purpose": purpose, "owner": owner, "order": order, "available": available},
+                    defaults={"available": available},
                 )
-                if sys_names:
-                    doc.systems.set([systems[n] for n in sys_names])
 
         # -- Sample work item history (for the Team page's Analysis view) --
         work_item_types = ["User Story", "Bug", "Task"]
